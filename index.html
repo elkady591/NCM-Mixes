@@ -403,9 +403,6 @@ function renderList(){
   }
   const { list, best } = results();
   let h = needPwd ? lockCard() : '';
-  const recent = store.get('recent', []).map(byKey).filter(Boolean);
-  if (!qEl.value && !clsFilter && recent.length)
-    h += `<div class="sec">آخر الخلطات</div><div class="grid">${recent.map(m => tile(m)).join('')}</div>`;
   h += `<div class="sec">${qEl.value || clsFilter ? 'النتائج (' + list.length + ')' : 'كل الخلطات'}</div>`;
   h += list.length ? `<div class="grid">${list.map(m => tile(m, m === best)).join('')}</div>`
                    : `<div class="empty">مفيش خلطة بالرقم ده</div>`;
@@ -542,8 +539,6 @@ function route(){
   }
   const m = current();
   if (m) {
-    const rec = [m.key, ...store.get('recent', []).filter(k => k !== m.key)].slice(0, 6);
-    store.set('recent', rec);
     renderDetail(m);
     listEl.classList.add('hidden'); detEl.classList.remove('hidden');
     window.scrollTo(0, 0);
