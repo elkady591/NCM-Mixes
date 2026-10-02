@@ -417,7 +417,10 @@ listEl.onclick = e => {
 };
 qEl.addEventListener('input', () => { if (location.hash) go(''); else renderList(); });
 qEl.addEventListener('keydown', e => {
-  if (e.key === 'Enter') { const r = results(); const m = r.best || r.list[0]; if (m) { qEl.blur(); go(m.key); } }
+  if (e.key !== 'Enter') return;
+  e.preventDefault(); qEl.blur();
+  const r = results(), m = r.best || r.list[0];
+  if (m) go(m.key);
 });
 
 /* ---------- detail ---------- */
@@ -449,19 +452,19 @@ function renderDetail(m){
     </div>
     <table>
       <thead><tr><th>الخامة</th><th class="v">للمتر (كجم)</th><th class="v">الإجمالي (كجم)</th></tr></thead>
-      <tbody>
-        ${r.map(x => `<tr class="${x.adm ? 'adm' : ''}"><td>${x.ar}<span class="en">${esc(x.en)}</span></td>
-          <td class="v num">${kg(x.v)}</td>
-          <td class="v num tot">${kg(x.t)}${x.t >= 1000 ? `<span class="t">${fmt(x.t / 1000, 2)} طن</span>` : ''}</td></tr>`).join('')}
-      </tbody>
+      <tbody id="tb">${tbody(r)}</tbody>
     </table>
     <div class="actions"><button class="btn" id="share">مشاركة / نسخ</button><button class="btn ghost" id="back2">خلطة تانية</button></div>`;
 }
-function refreshDetail(){
-  const m = current(); if (!m) return;
-  const a = document.activeElement && document.activeElement.id;
-  renderDetail(m);
-  if (a === 'qty') { const el = document.getElementById('qty'); el.focus(); }
+function tbody(r){
+  return r.map(x => `<tr class="${x.adm ? 'adm' : ''}"><td>${x.ar}<span class="en">${esc(x.en)}</span></td>
+    <td class="v num">${kg(x.v)}</td>
+    <td class="v num tot">${kg(x.t)}${x.t >= 1000 ? `<span class="t">${fmt(x.t / 1000, 2)} طن</span>` : ''}</td></tr>`).join('');
+}
+// Only the totals change while typing; redrawing the input would move the cursor on phones
+function refreshTotals(){
+  const m = current(), tb = document.getElementById('tb');
+  if (m && tb) tb.innerHTML = tbody(rows(m));
 }
 detEl.addEventListener('click', e => {
   const t = e.target;
@@ -469,12 +472,18 @@ detEl.addEventListener('click', e => {
   if (t.id === 'share') return share();
   if (t.id === 'setImport') return fileEl.click();
   if (t.id === 'setReset') { toast('بيرجع…', 10000); return syncBundle(true); }
-  if (t.dataset.d) { qty = Math.max(0, (Number(qty) || 0) + Number(t.dataset.d)); store.set('qty', qty); refreshDetail(); }
+  if (t.dataset.d) {
+    qty = Math.max(0, (Number(qty) || 0) + Number(t.dataset.d)); store.set('qty', qty);
+    document.getElementById('qty').value = qty; refreshTotals();
+  }
 });
 detEl.addEventListener('input', e => {
   if (e.target.id !== 'qty') return;
   qty = e.target.value; store.set('qty', qty);
-  refreshDetail();
+  refreshTotals();
+});
+detEl.addEventListener('keydown', e => {
+  if (e.target.id === 'qty' && e.key === 'Enter') { e.preventDefault(); e.target.blur(); }
 });
 
 function share(){
