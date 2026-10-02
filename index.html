@@ -1,0 +1,557 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#d9631e">
+<meta name="robots" content="noindex">
+<title>NCM Mixes</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{
+  --bg:#f3f2ee; --card:#ffffff; --ink:#1c1c1a; --muted:#6c6b66; --line:#e2e0d8;
+  --chip:#e9e7df; --accent:#d9631e; --accent-ink:#ffffff; --hl:#fff6ef;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#131312; --card:#1e1e1c; --ink:#f1f0ea; --muted:#a19f97; --line:#34332f;
+    --chip:#2a2a27; --accent:#f08a4b; --accent-ink:#1a1009; --hl:#2a201a;
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink)}
+body{font:16px/1.45 "Segoe UI",Tahoma,system-ui,-apple-system,Roboto,"Noto Sans Arabic",sans-serif;
+  -webkit-tap-highlight-color:transparent;padding-bottom:40px}
+.wrap{max-width:640px;margin:0 auto;padding:0 14px}
+.num{direction:ltr;unicode-bidi:isolate;font-variant-numeric:tabular-nums}
+button{font:inherit;color:inherit;cursor:pointer}
+
+/* top bar */
+.top{position:sticky;top:0;z-index:5;background:var(--bg);padding:12px 0 8px;border-bottom:1px solid var(--line)}
+.title{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.title h1{font-size:19px;margin:0;direction:ltr}
+.title small{color:var(--muted);font-size:12px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gear{flex:none;width:40px;height:40px;display:grid;place-items:center;border:0;background:none;color:var(--muted);border-radius:10px;padding:0}
+.gear:active{background:var(--chip)}
+.lock{background:var(--card);border:1.5px solid var(--accent);border-radius:16px;padding:16px;margin-top:14px}
+.lock h3{margin:0 0 4px;font-size:16px}
+.lock p{margin:0 0 10px;color:var(--muted);font-size:13px}
+.lock form{display:flex;gap:8px}
+.lock input{flex:1;min-width:0;font:inherit;font-size:17px;padding:10px 12px;border-radius:10px;border:1.5px solid var(--line);
+  background:var(--bg);color:var(--ink);outline:none;direction:ltr}
+.lock input:focus{border-color:var(--accent)}
+.lock .btn{flex:none;padding:10px 18px}
+.err{color:#d32f2f;font-size:13px;margin-top:6px}
+.set h2{font-size:20px;margin:4px 0 12px}
+.box{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+.box h3{margin:0 0 6px;font-size:15px}
+.box p{margin:0 0 12px;color:var(--muted);font-size:13px}
+.box .btn{width:100%}
+.box .btn + .btn{margin-top:8px}
+.kv{display:flex;justify-content:space-between;gap:10px;font-size:14px;padding:4px 0}
+.kv span{color:var(--muted)}
+.search{display:flex;gap:6px}
+.search input{flex:1;min-width:0;font:inherit;font-size:20px;padding:10px 14px;border-radius:12px;
+  border:1.5px solid var(--line);background:var(--card);color:var(--ink);outline:none;direction:ltr;text-align:right}
+.search input:focus{border-color:var(--accent)}
+.search input::placeholder{direction:rtl;color:var(--muted);font-size:16px}
+.kbd{flex:none;width:52px;border-radius:12px;border:1.5px solid var(--line);background:var(--card);font-size:13px;font-weight:600}
+.chips{display:flex;gap:6px;overflow-x:auto;padding:8px 0 2px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;border:0;background:var(--chip);border-radius:999px;padding:6px 12px;font-size:14px;font-weight:600}
+.chip.on{background:var(--accent);color:var(--accent-ink)}
+
+/* list */
+.sec{font-size:13px;color:var(--muted);margin:14px 2px 6px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
+.tile{border:1.5px solid var(--line);background:var(--card);border-radius:14px;padding:10px 8px;text-align:center}
+.tile b{display:block;font-size:22px;letter-spacing:.5px}
+.tile .cls{display:inline-block;margin-top:2px;font-size:13px;font-weight:700;color:var(--accent)}
+.tile .sub{display:block;font-size:11px;color:var(--muted);margin-top:1px}
+.tile.best{border-color:var(--accent);background:var(--hl)}
+.empty{color:var(--muted);text-align:center;padding:30px 0}
+.welcome{background:var(--card);border:1.5px solid var(--line);border-radius:16px;padding:20px;margin-top:24px;text-align:center}
+.welcome h2{margin:0 0 8px;font-size:20px}
+.welcome p{margin:0 0 16px;color:var(--muted);font-size:14px}
+
+/* detail */
+.back{border:0;background:none;color:var(--accent);font-weight:700;padding:12px 0 4px;font-size:15px}
+.head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:4px 0 10px}
+.head h2{margin:0;font-size:30px}
+.head h2 small{font-size:15px;color:var(--muted);font-weight:400}
+.badge{background:var(--accent);color:var(--accent-ink);border-radius:8px;padding:2px 10px;font-weight:800;font-size:18px}
+.facts{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px}
+.fact{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:6px 8px}
+.fact span{display:block;font-size:11px;color:var(--muted)}
+.fact b{font-size:15px}
+.fact.wide{grid-column:1/-1}
+
+.qty{background:var(--card);border:1.5px solid var(--accent);border-radius:14px;padding:10px;margin-bottom:12px}
+.qrow{display:flex;align-items:center;gap:8px}
+.qrow label{font-weight:700;white-space:nowrap}
+.qrow input{flex:1;min-width:0;font:inherit;font-size:26px;font-weight:700;text-align:center;padding:6px;
+  border-radius:10px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);outline:none}
+.qrow input:focus{border-color:var(--accent)}
+.step{width:48px;height:48px;border-radius:10px;border:0;background:var(--chip);font-size:24px;font-weight:700}
+
+table{width:100%;border-collapse:collapse;background:var(--card);border-radius:14px;overflow:hidden;border:1px solid var(--line)}
+th,td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:right;vertical-align:middle}
+tbody tr:last-child td{border-bottom:0}
+th{font-size:12px;color:var(--muted);font-weight:600;background:var(--chip)}
+td.v,th.v{text-align:left;white-space:nowrap}
+td .en{display:block;font-size:11px;color:var(--muted)}
+td.tot{font-weight:800;font-size:17px}
+td .t{display:block;font-size:12px;font-weight:600;color:var(--accent)}
+tr.adm td{background:var(--hl)}
+.actions{display:flex;gap:8px;margin-top:12px}
+.btn{flex:1;border:0;border-radius:12px;padding:12px;background:var(--accent);color:var(--accent-ink);font-weight:700}
+.btn.ghost{background:var(--chip);color:var(--ink)}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);
+  padding:8px 16px;border-radius:999px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;
+  max-width:calc(100% - 32px);text-align:center}
+.toast.on{opacity:1}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+<div class="top"><div class="wrap">
+  <div class="title"><h1>NCM Mixes</h1><small id="built"></small>
+    <button class="gear" id="gearBtn" aria-label="الإعدادات"><svg viewBox="0 0 24 24" width="22" height="22" fill="none"
+      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/>
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button></div>
+  <div class="search" id="searchBox">
+    <input id="q" type="search" inputmode="numeric" autocomplete="off" placeholder="رقم الخلطة… 011 / 085 / 2018">
+    <button class="kbd" id="kbd" title="تبديل الكيبورد">ABC</button>
+  </div>
+  <div class="chips" id="cls"></div>
+</div></div>
+
+<div class="wrap">
+  <main id="list"></main>
+  <main id="detail" class="hidden"></main>
+</div>
+<input type="file" id="file" class="hidden"
+  accept=".xlsx,.xlsm,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel">
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------- helpers ---------- */
+const CYR = {'А':'A','В':'B','Е':'E','К':'K','М':'M','Н':'H','О':'O','Р':'P','С':'C','Т':'T','Х':'X'};
+const norm = s => String(s ?? '')
+  .replace(/[٠-٩]/g, d => d.charCodeAt(0) - 0x660)
+  .replace(/[۰-۹]/g, d => d.charCodeAt(0) - 0x6F0)
+  .toUpperCase().replace(/[АВЕКМНОРСТХ]/g, c => CYR[c]).trim();
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const store = {
+  get(k, d){ try { const v = localStorage.getItem('ncmmix.' + k); return v == null ? d : JSON.parse(v); } catch(e){ return d; } },
+  set(k, v){ try { localStorage.setItem('ncmmix.' + k, JSON.stringify(v)); return true; } catch(e){ return false; } }
+};
+const fmt = (v, dec) => v == null ? '—' : Number(v).toLocaleString('en-US', {maximumFractionDigits: dec, minimumFractionDigits: 0});
+const kg = v => fmt(v, v >= 100 ? 0 : 1);
+
+function arName(en){
+  const size = (en.match(/\(([^)]+)\)/) || [])[1];
+  const sz = size ? ' <span class="num">' + esc(size.replace(/\s*mm/i, '')) + '</span>' : '';
+  if (/cement/i.test(en)) return /lll|iii/i.test(en) ? 'أسمنت CEM III/A' : 'أسمنت CEM I SR3';
+  if (/serpentin/i.test(en)) return (/sand/i.test(en) ? 'رمل سربنتين' : 'سن سربنتين') + sz;
+  if (/sand/i.test(en)) return 'رمل' + sz;
+  if (/crushed stone/i.test(en)) return 'سن' + sz;
+  if (/magnetite/i.test(en)) return 'مجنتيت' + sz;
+  if (/steel shot/i.test(en)) return 'بلي حديد ' + esc(en.replace(/steel shot/i, '').trim());
+  if (/water/i.test(en)) return 'مياه';
+  return esc(en);
+}
+
+/* ---------- Excel import (data lives only on this phone) ---------- */
+const txt = v => v == null ? '' : String(v).trim();
+const num = v => {
+  if (typeof v === 'number') return v;
+  const s = txt(v).replace(',', '.');
+  return /^-?\d+(\.\d+)?$/.test(s) ? parseFloat(s) : null;
+};
+function parseSheet(ws){
+  if (!ws || !ws['!ref']) return [];
+  const R = XLSX.utils.decode_range(ws['!ref']);
+  const cell = (r, c) => { const x = ws[XLSX.utils.encode_cell({ r, c })]; return x ? x.v : null; };
+  // Find the label column + the "Selection Card No." row
+  let lc = -1, rCard = -1;
+  for (let r = R.s.r; r <= R.e.r && lc < 0; r++)
+    for (let c = R.s.c; c <= Math.min(R.e.c, R.s.c + 5); c++)
+      if (/^Selection Card/i.test(txt(cell(r, c)))) { lc = c; rCard = r; break; }
+  if (lc < 0) return [];
+  const labels = [];
+  for (let r = R.s.r; r <= R.e.r; r++) { const t = txt(cell(r, lc)); if (t) labels.push([r, t]); }
+  const rowOf = re => { const x = labels.find(([, t]) => re.test(t)); return x ? x[0] : -1; };
+  const rCls = rowOf(/^Strength Class/i), rMin = rowOf(/^Min\.? required/i), rSlump = rowOf(/^Slump/i),
+        rWres = rowOf(/^Water Resistance/i), rExp = rowOf(/^Exposure/i), rWb = rowOf(/^W\/Binder/i),
+        rAdm1 = rowOf(/^Admixture 1/i), rAdm2 = rowOf(/^Admixture 2/i), rDen = rowOf(/^Density/i),
+        r7 = rowOf(/^Average 7/i), r28 = rowOf(/^Average 28/i), r56 = rowOf(/^Average 56/i);
+  if (rWb < 0 || rAdm1 < 0) throw new Error('شكل الملف مختلف عن كتالوج الخلطات');
+  const matRows = labels.filter(([r]) => r > rWb && r < rAdm1);
+  // A card number merged over several columns belongs to each of them
+  const origin = {};
+  (ws['!merges'] || []).forEach(m => {
+    if (m.s.r <= rCard && m.e.r >= rCard) for (let c = m.s.c; c <= m.e.c; c++) origin[c] = m.s.c;
+  });
+  const at = (r, c) => r < 0 ? null : cell(r, c);
+  const mixes = [];
+  for (let c = lc + 1; c <= R.e.c; c++) {
+    const mats = matRows.map(([r, n]) => ({ n, v: num(cell(r, c)) })).filter(x => x.v);
+    if (!mats.length) continue;
+    const adm = [];
+    [rAdm1, rAdm2].forEach(r => {
+      if (r < 0) return;
+      const b = txt(cell(r, c)), v = num(cell(r + 1, c));
+      if (b || v) adm.push({ b, v });
+    });
+    mixes.push({
+      card: txt(cell(rCard, origin[c] ?? c)) || ('عمود ' + XLSX.utils.encode_col(c)),
+      cls: txt(at(rCls, c)), minSt: num(at(rMin, c)), slump: txt(at(rSlump, c)), wres: txt(at(rWres, c)),
+      exp: txt(at(rExp, c)), wb: num(at(rWb, c)), mats, adm,
+      dens: num(at(rDen, c)), s7: num(at(r7, c)), s28: num(at(r28, c)), s56: num(at(r56, c))
+    });
+  }
+  return mixes;
+}
+function loadXLSX(){
+  if (window.XLSX) return Promise.resolve();
+  return new Promise((ok, fail) => {
+    const s = document.createElement('script');
+    s.src = 'xlsx.full.min.js'; s.onload = ok; s.onerror = () => fail(new Error('مكتبة الإكسيل ما اتحملتش'));
+    document.head.appendChild(s);
+  });
+}
+function diff(oldM, newM){
+  const keyed = list => { const seen = {}, out = {};
+    list.forEach(m => { const n = seen[m.card] = (seen[m.card] || 0) + 1; out[m.card + '#' + n] = JSON.stringify(m); });
+    return out; };
+  const a = keyed(oldM), b = keyed(newM);
+  let added = 0, changed = 0, removed = 0;
+  for (const k in b) if (!(k in a)) added++; else if (a[k] !== b[k]) changed++;
+  for (const k in a) if (!(k in b)) removed++;
+  return { added, changed, removed };
+}
+async function importBuffer(buf, name){
+  await loadXLSX();
+  const wb = XLSX.read(buf, { type: 'array' });
+  let mixes = [];
+  for (const sn of wb.SheetNames) { mixes = parseSheet(wb.Sheets[sn]); if (mixes.length) break; }
+  if (!mixes.length) throw new Error('مفيش خلطات في الملف ده');
+  const d = new Date(), pad = n => String(n).padStart(2, '0');
+  useData({ src: 'excel', file: name, at: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
+            ver: d.toISOString(), mixes });
+}
+// Save + show new data, and say what changed
+function useData(data){
+  const ch = diff(DATA ? DATA.mixes : [], data.mixes), n = data.mixes.length;
+  if (!store.set('data', data)) throw new Error('مفيش مساحة لحفظ البيانات');
+  const first = !DATA;
+  setData(data);
+  go('');
+  if (first) toast(`تم — ${n} خلطة`);
+  else if (!ch.added && !ch.changed && !ch.removed) toast(`مفيش تغيير — ${n} خلطة`);
+  else toast([`اتحدث — ${n} خلطة`, ch.added && `${ch.added} جديدة`, ch.changed && `${ch.changed} اتعدلت`,
+              ch.removed && `${ch.removed} اتشالت`].filter(Boolean).join(' · '), 3500);
+}
+
+/* ---------- built-in data: data.enc on GitHub, encrypted with the user's password ---------- */
+let BUNDLE = null, needPwd = false, pwdErr = '';
+async function decryptBundle(b, pwd){
+  const b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+  const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pwd), 'PBKDF2', false, ['deriveBits']);
+  const bits = new Uint8Array(await crypto.subtle.deriveBits(
+    { name: 'PBKDF2', salt: b64(b.salt), iterations: b.iter, hash: 'SHA-256' }, base, 512));
+  const iv = b64(b.iv), ct = b64(b.ct), signed = new Uint8Array(iv.length + ct.length);
+  signed.set(iv); signed.set(ct, iv.length);
+  const macKey = await crypto.subtle.importKey('raw', bits.slice(32), { name: 'HMAC', hash: 'SHA-256' }, false, ['verify']);
+  if (!await crypto.subtle.verify('HMAC', macKey, b64(b.mac), signed)) throw new Error('pwd');
+  const aesKey = await crypto.subtle.importKey('raw', bits.slice(0, 32), 'AES-CBC', false, ['decrypt']);
+  const data = JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({ name: 'AES-CBC', iv }, aesKey, ct)));
+  return { ...data, src: 'bundle', ver: b.ver };
+}
+async function fetchBundle(){
+  try {
+    const r = await fetch('data.enc', { cache: 'no-cache' });
+    if (r.ok) BUNDLE = await r.json();
+  } catch (e) {}
+  return BUNDLE;
+}
+// Load the built-in data when there is none yet, or when GitHub has a newer version than this phone
+async function syncBundle(force){
+  if (!await fetchBundle()) return;
+  if (!force && DATA && DATA.ver >= BUNDLE.ver) return;
+  const pwd = store.get('pwd', '');
+  if (!pwd) { needPwd = true; toast(''); return go(''); }
+  await unlock(pwd);
+}
+async function unlock(pwd){
+  try {
+    const data = await decryptBundle(BUNDLE, pwd);
+    store.set('pwd', pwd);
+    needPwd = false; pwdErr = '';
+    useData(data);
+  } catch (e) {
+    needPwd = true; pwdErr = e.message === 'pwd' ? 'الباسورد غلط' : 'حصلت مشكلة في قراءة البيانات';
+    toast(''); go('');
+  }
+}
+function lockCard(){
+  return `<div class="lock"><h3>${DATA ? 'فيه تحديث للخلطات' : 'اكتب الباسورد'}</h3>
+    <p>${DATA ? 'اكتب الباسورد علشان تنزل الخلطات الجديدة.' : 'مرة واحدة بس على الموبايل ده.'}</p>
+    <form id="pwdForm"><input id="pwd" type="password" autocomplete="current-password" placeholder="Password">
+    <button class="btn" type="submit">فتح</button></form>${pwdErr ? `<div class="err">${pwdErr}</div>` : ''}</div>`;
+}
+document.addEventListener('submit', e => {
+  if (e.target.id !== 'pwdForm') return;
+  e.preventDefault();
+  const v = document.getElementById('pwd').value;
+  if (v) { toast('بيفتح…', 10000); unlock(v); }
+});
+
+const fileEl = document.getElementById('file');
+fileEl.onchange = async () => {
+  const f = fileEl.files[0]; fileEl.value = '';
+  if (!f) return;
+  toast('بيقرا الملف…', 10000);
+  try { await importBuffer(await f.arrayBuffer(), f.name); }
+  catch (e) { toast(''); alert('مقدرتش أقرا الملف:\n' + e.message); }
+};
+
+/* ---------- data ---------- */
+let DATA = null, MIX = [], SORTED = [], CLASSES = [];
+function setData(d){
+  DATA = d;
+  MIX = (d ? d.mixes : []).map((m, i) => {
+    const card = String(m.card).trim();
+    const short = card.includes('/') ? card.split('/').slice(0, 2).join('/') : card.split('-')[0];
+    const cls = norm(m.cls);
+    return { ...m, i, card, short, rest: card.slice(short.length), cls, slump: norm(m.slump),
+             num: parseInt(short, 10), key: card + '|' + cls + '|' + (m.wb == null ? '' : Math.round(m.wb * 1000)) };
+  });
+  const count = {};
+  MIX.forEach(m => count[m.card] = (count[m.card] || 0) + 1);
+  MIX.forEach(m => m.multi = count[m.card] > 1);
+  SORTED = [...MIX].sort((a, b) => (a.card.includes('/') - b.card.includes('/')) || (a.num - b.num) || (a.i - b.i));
+  CLASSES = [...new Set(MIX.map(m => m.cls))].sort((a, b) =>
+    a[0].localeCompare(b[0]) || parseFloat(a.slice(1)) - parseFloat(b.slice(1)));
+  if (!CLASSES.includes(clsFilter)) clsFilter = '';
+  document.getElementById('built').textContent = d ? `${MIX.length} خلطة` : '';
+  document.getElementById('searchBox').classList.toggle('hidden', !d);
+  renderChips();
+}
+const byKey = k => MIX.find(m => m.key === k);
+
+/* ---------- state ---------- */
+const qEl = document.getElementById('q');
+let clsFilter = '';
+let qty = store.get('qty', 1);
+
+/* keyboard toggle (numbers / letters) */
+const kbdBtn = document.getElementById('kbd');
+function setKbd(mode){
+  qEl.setAttribute('inputmode', mode);
+  kbdBtn.textContent = mode === 'numeric' ? 'ABC' : '123';
+  store.set('kbd', mode);
+}
+setKbd(store.get('kbd', 'numeric'));
+kbdBtn.onclick = () => { setKbd(qEl.getAttribute('inputmode') === 'numeric' ? 'text' : 'numeric'); qEl.blur(); qEl.focus(); };
+
+/* class chips */
+const clsEl = document.getElementById('cls');
+function renderChips(){
+  clsEl.innerHTML = MIX.length ? ['', ...CLASSES].map(c =>
+    `<button class="chip${c === clsFilter ? ' on' : ''}" data-c="${esc(c)}">${c || 'الكل'}</button>`).join('') : '';
+}
+clsEl.onclick = e => {
+  const b = e.target.closest('.chip'); if (!b) return;
+  clsFilter = b.dataset.c; renderChips(); go('');
+};
+
+/* ---------- search ---------- */
+function results(){
+  const q = norm(qEl.value).replace(/\s+/g, '');
+  let list = clsFilter ? SORTED.filter(m => m.cls === clsFilter) : SORTED;
+  if (!q) return { list, best: null };
+  if (/^[A-Z]/.test(q)) return { list: list.filter(m => m.cls.startsWith(q) || m.slump.startsWith(q)), best: null };
+  const qn = /^\d+$/.test(q) ? parseInt(q, 10) : NaN;
+  const scored = list.map(m => {
+    let s = 0;
+    if (m.num === qn || m.short === q) s = 3;
+    else if (m.short.startsWith(q)) s = 2;
+    else if (m.card.replace(/\s+/g, '').replace(/-20-20\d\d$/, '').includes(q)) s = 1;
+    return [s, m];
+  }).filter(x => x[0]).sort((a, b) => b[0] - a[0]);
+  return { list: scored.map(x => x[1]), best: scored.length && scored[0][0] === 3 ? scored[0][1] : null };
+}
+
+function tile(m, best){
+  const sub = m.multi ? 'W/B ' + fmt(m.wb, 2) : m.slump;
+  return `<button class="tile${best ? ' best' : ''}" data-k="${esc(m.key)}">
+    <b class="num">${esc(m.short)}</b><span class="cls">${esc(m.cls)}</span><span class="sub num">${esc(sub)}</span></button>`;
+}
+
+const listEl = document.getElementById('list'), detEl = document.getElementById('detail');
+function renderList(){
+  if (!DATA) {
+    listEl.innerHTML = needPwd ? lockCard() : BUNDLE === null && loading ? '<div class="empty">بيحمّل…</div>' :
+      `<div class="welcome"><h2>أهلاً</h2>
+      <p>مقدرتش أجيب الخلطات — اتأكد إن النت شغال وافتح تاني،<br>أو اختار ملف الإكسيل من الموبايل.</p>
+      <button class="btn" id="impFirst">اختيار ملف Excel</button></div>`;
+    return;
+  }
+  const { list, best } = results();
+  let h = needPwd ? lockCard() : '';
+  const recent = store.get('recent', []).map(byKey).filter(Boolean);
+  if (!qEl.value && !clsFilter && recent.length)
+    h += `<div class="sec">آخر الخلطات</div><div class="grid">${recent.map(m => tile(m)).join('')}</div>`;
+  h += `<div class="sec">${qEl.value || clsFilter ? 'النتائج (' + list.length + ')' : 'كل الخلطات'}</div>`;
+  h += list.length ? `<div class="grid">${list.map(m => tile(m, m === best)).join('')}</div>`
+                   : `<div class="empty">مفيش خلطة بالرقم ده</div>`;
+  listEl.innerHTML = h;
+}
+listEl.onclick = e => {
+  if (e.target.id === 'impFirst') return fileEl.click();
+  const t = e.target.closest('.tile'); if (t) go(t.dataset.k);
+};
+qEl.addEventListener('input', () => { if (location.hash) go(''); else renderList(); });
+qEl.addEventListener('keydown', e => {
+  if (e.key === 'Enter') { const r = results(); const m = r.best || r.list[0]; if (m) { qEl.blur(); go(m.key); } }
+});
+
+/* ---------- detail ---------- */
+function rows(m){
+  const f = Number(qty) || 0;
+  const r = m.mats.map(x => ({ ar: arName(x.n), en: x.n, v: x.v, adm: false }));
+  m.adm.forEach((a, i) => r.push({ ar: 'إضافة ' + (i + 1), en: a.b, v: a.v, adm: true }));
+  r.forEach(x => x.t = x.v == null ? null : x.v * f);
+  return r;
+}
+function renderDetail(m){
+  const r = rows(m);
+  const fact = (k, v, wide) => v == null || v === '' ? '' : `<div class="fact${wide ? ' wide' : ''}"><span>${k}</span><b class="num">${esc(v)}</b></div>`;
+  detEl.innerHTML = `
+    <button class="back" id="back">→ كل الخلطات</button>
+    <div class="head"><h2 class="num">${esc(m.short)}<small>${esc(m.rest)}</small></h2><span class="badge">${esc(m.cls)}</span></div>
+    <div class="facts">
+      ${fact('Slump / Flow', m.slump)}${fact('W/B', m.wb == null ? null : fmt(m.wb, 2))}${fact('Water Res.', m.wres)}
+      ${fact('Density', m.dens == null ? null : fmt(m.dens, 0))}${fact('Min. St. (MPa)', m.minSt == null ? null : fmt(m.minSt, 1))}
+      ${fact('28 يوم (MPa)', m.s28 == null ? null : fmt(m.s28, 1))}${fact('Exposure', m.exp && m.exp !== '-' ? m.exp : null, true)}
+    </div>
+    <div class="qty">
+      <div class="qrow">
+        <label for="qty">الكمية م³</label>
+        <button class="step" data-d="-1">−</button>
+        <input id="qty" type="number" inputmode="decimal" min="0" step="0.5" value="${esc(qty)}">
+        <button class="step" data-d="1">+</button>
+      </div>
+    </div>
+    <table>
+      <thead><tr><th>الخامة</th><th class="v">للمتر (كجم)</th><th class="v">الإجمالي (كجم)</th></tr></thead>
+      <tbody>
+        ${r.map(x => `<tr class="${x.adm ? 'adm' : ''}"><td>${x.ar}<span class="en">${esc(x.en)}</span></td>
+          <td class="v num">${kg(x.v)}</td>
+          <td class="v num tot">${kg(x.t)}${x.t >= 1000 ? `<span class="t">${fmt(x.t / 1000, 2)} طن</span>` : ''}</td></tr>`).join('')}
+      </tbody>
+    </table>
+    <div class="actions"><button class="btn" id="share">مشاركة / نسخ</button><button class="btn ghost" id="back2">خلطة تانية</button></div>`;
+}
+function refreshDetail(){
+  const m = current(); if (!m) return;
+  const a = document.activeElement && document.activeElement.id;
+  renderDetail(m);
+  if (a === 'qty') { const el = document.getElementById('qty'); el.focus(); }
+}
+detEl.addEventListener('click', e => {
+  const t = e.target;
+  if (t.id === 'back' || t.id === 'back2') { history.length > 1 && location.hash ? history.back() : go(''); return; }
+  if (t.id === 'share') return share();
+  if (t.id === 'setImport') return fileEl.click();
+  if (t.id === 'setReset') { toast('بيرجع…', 10000); return syncBundle(true); }
+  if (t.dataset.d) { qty = Math.max(0, (Number(qty) || 0) + Number(t.dataset.d)); store.set('qty', qty); refreshDetail(); }
+});
+detEl.addEventListener('input', e => {
+  if (e.target.id !== 'qty') return;
+  qty = e.target.value; store.set('qty', qty);
+  refreshDetail();
+});
+
+function share(){
+  const m = current(); if (!m) return;
+  const lines = [`خلطة ${m.card} — ${m.cls} — ${qty} م³`];
+  rows(m).forEach(x => lines.push(`${x.ar.replace(/<[^>]+>/g, '')}${x.adm ? ' ' + x.en : ''}: ${kg(x.t)} كجم`));
+  const text = lines.join('\n');
+  if (navigator.share) { navigator.share({ text }).catch(() => {}); return; }
+  copy(text);
+}
+function copy(text){
+  const done = () => toast('اتنسخ');
+  if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(done, () => legacy());
+  else legacy();
+  function legacy(){ const t = document.createElement('textarea'); t.value = text; document.body.appendChild(t); t.select();
+    try { document.execCommand('copy'); done(); } catch(e){} t.remove(); }
+}
+let toastTimer;
+function toast(s, ms = 1600){
+  const t = document.getElementById('toast');
+  clearTimeout(toastTimer);
+  if (!s) { t.classList.remove('on'); return; }
+  t.textContent = s; t.classList.add('on');
+  toastTimer = setTimeout(() => t.classList.remove('on'), ms);
+}
+
+/* ---------- routing (Android back button closes the mix) ---------- */
+const current = () => byKey(decodeURIComponent(location.hash.slice(1)));
+function go(key){
+  if (key) location.hash = encodeURIComponent(key);
+  else if (location.hash) history.replaceState(null, '', location.pathname + location.search), route();
+  else route();
+}
+function renderSettings(){
+  const src = !DATA ? '—' : DATA.src === 'excel' ? 'ملف Excel من الموبايل' : 'الخلطات الأساسية';
+  detEl.innerHTML = `<div class="set">
+    <button class="back" id="back">→ رجوع</button>
+    <h2>الإعدادات</h2>
+    <div class="box"><h3>الخلطات الحالية</h3>
+      <div class="kv"><span>المصدر</span><b>${src}</b></div>
+      ${DATA ? `<div class="kv"><span>الملف</span><b class="num">${esc(DATA.file)}</b></div>
+      <div class="kv"><span>التاريخ</span><b class="num">${esc(DATA.at)}</b></div>
+      <div class="kv"><span>عدد الخلطات</span><b class="num">${MIX.length}</b></div>` : ''}
+    </div>
+    <div class="box"><h3>تحديث الخلطات من Excel</h3>
+      <p>اختار ملف الكتالوج الجديد، والخلطات هتتحدث على الموبايل ده.</p>
+      <button class="btn" id="setImport">Import ملف Excel</button>
+      ${DATA && DATA.src === 'excel' && BUNDLE ? '<button class="btn ghost" id="setReset">رجوع للخلطات الأساسية</button>' : ''}
+    </div></div>`;
+}
+function route(){
+  if (location.hash === '#settings') {
+    renderSettings();
+    listEl.classList.add('hidden'); detEl.classList.remove('hidden');
+    return;
+  }
+  const m = current();
+  if (m) {
+    const rec = [m.key, ...store.get('recent', []).filter(k => k !== m.key)].slice(0, 6);
+    store.set('recent', rec);
+    renderDetail(m);
+    listEl.classList.add('hidden'); detEl.classList.remove('hidden');
+    window.scrollTo(0, 0);
+  } else {
+    detEl.classList.add('hidden'); listEl.classList.remove('hidden');
+    renderList();
+  }
+}
+window.addEventListener('hashchange', route);
+document.getElementById('gearBtn').onclick = () => { if (location.hash !== '#settings') location.hash = 'settings'; };
+let loading = true;
+setData(store.get('data', null));
+route();
+syncBundle().finally(() => { loading = false; if (!DATA) route(); });
+
+if ('serviceWorker' in navigator && location.protocol.startsWith('http'))
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "name": "NCM Mixes",
+  "short_name": "NCM Mixes",
+  "description": "كتالوج خلطات الخرسانة وحساب الخامات",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f3f2ee",
+  "theme_color": "#d9631e",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
