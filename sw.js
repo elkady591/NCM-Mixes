@@ -1,9 +1,12 @@
 // Bump VERSION on every change so phones pick up the new files.
-const VERSION = 'ncm-mixes-v3';
+const VERSION = 'ncm-mixes-v4';
 const FILES = ['./', 'index.html', 'manifest.json', 'xlsx.full.min.js', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png'];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(VERSION).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
+  // cache: 'reload' skips the browser's HTTP cache so a new version never stores old files
+  e.waitUntil(caches.open(VERSION)
+    .then(c => Promise.all(FILES.map(f => fetch(new Request(f, { cache: 'reload' })).then(r => r.ok && c.put(f, r)))))
+    .then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', e => {
@@ -14,7 +17,18 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
+  const path = new URL(e.request.url).pathname;
   // Mix data always comes from the network (the app keeps its own copy for offline use)
-  if (new URL(e.request.url).pathname.endsWith('/data.enc')) return;
-  e.respondWith(caches.match(e.request, { ignoreSearch: true }).then(hit => hit || fetch(e.request)));
+  if (path.endsWith('/data.enc')) return;
+  // Images and the Excel library rarely change: serve the saved copy
+  if (/\.(png|ico)$|xlsx\.full\.min\.js$/.test(path)) {
+    e.respondWith(caches.match(e.request, { ignoreSearch: true }).then(hit => hit || fetch(e.request)));
+    return;
+  }
+  // The app itself: newest version when online, saved copy when offline
+  e.respondWith(fetch(e.request, { cache: 'no-cache' }).then(r => {
+    if (r.ok) { const copy = r.clone(); caches.open(VERSION).then(c => c.put(e.request, copy)); }
+    return r;
+  }).catch(() => caches.match(e.request, { ignoreSearch: true })
+    .then(hit => hit || caches.match('index.html'))));
 });
