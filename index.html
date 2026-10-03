@@ -399,7 +399,9 @@ function regularMix(m, i){
   const ctype = /^S[CR]{2}$/i.test(m.ctype) ? 'SRC' : norm(m.ctype);
   return { ...m, kind: 'regular', i, name, short, cls: short, c: p ? p[2] : '', st: p ? p[3] : '', cem: p ? p[4] : '',
            tag, ctype, num: parseFloat(short.slice(1)), find: norm(name).replace(/\s+/g, ''), key: 'R|' + name,
-           mats: m.mats.map(x => /^cement/i.test(x.n) ? { ...x, ar: 'أسمنت ' + esc(ctype) } : x) };
+           // Water is batched from Total Water, so Free Water is not listed
+           mats: m.mats.filter(x => !/free water/i.test(x.n)).map(x =>
+             /^cement/i.test(x.n) ? { ...x, ar: 'أسمنت ' + esc(ctype) } : /total water/i.test(x.n) ? { ...x, ar: 'مياه' } : x) };
 }
 function setData(d){
   // Data saved by the first version held only the nuclear catalog at the top level
@@ -523,10 +525,21 @@ qEl.addEventListener('keydown', e => {
 function rows(m){
   const f = Number(qty) || 0;
   const r = m.mats.map(x => ({ ar: x.ar || arName(x.n), en: x.n, v: x.v, adm: false }));
-  m.adm.forEach((a, i) => r.push({ ar: 'إضافة ' + (i + 1), en: a.b, v: a.v, adm: true }));
-  r.forEach(x => x.t = x.v == null ? null : x.v * f);
+  // Liquid admixtures are catalogued in kg but dosed in litres: litres = kg ÷ density
+  m.adm.forEach((a, i) => {
+    const d = density(a.b);
+    r.push({ ar: 'إضافة ' + (i + 1), en: a.b, adm: true, v: d && a.v != null ? a.v / d : a.v, kg: d ? a.v : null });
+  });
+  r.forEach(x => { x.t = x.v == null ? null : x.v * f; x.tkg = x.kg == null ? null : x.kg * f; });
   return r;
 }
+// kg per litre; an admixture not listed here stays in kg (Rheoplast CS-1)
+function density(brand){
+  if (/324[01]/.test(brand)) return 1.06;
+  if (/type\s*g/i.test(brand)) return 1.215;
+  return 0;
+}
+const lit = v => fmt(v, v >= 100 ? 1 : 2);
 function renderDetail(m){
   const r = rows(m);
   const fact = (k, v, wide) => v == null || v === '' ? '' : `<div class="fact${wide ? ' wide' : ''}"><span>${k}</span><b class="num">${esc(v)}</b></div>`;
@@ -561,7 +574,10 @@ function renderDetail(m){
     <div class="actions"><button class="btn" id="share">مشاركة / نسخ</button><button class="btn ghost" id="back2">خلطة تانية</button></div>`;
 }
 function tbody(r){
-  return r.map(x => `<tr class="${x.adm ? 'adm' : ''}"><td>${x.ar}<span class="en">${esc(x.en)}</span></td>
+  return r.map(x => x.kg != null ? `<tr class="adm"><td>${x.ar}<span class="en">${esc(x.en)}</span></td>
+    <td class="v"><span class="num">${lit(x.v)}</span> لتر<span class="en"><span class="num">${kg(x.kg)}</span> كجم</span></td>
+    <td class="v tot"><span class="num">${lit(x.t)}</span> لتر<span class="en"><span class="num">${kg(x.tkg)}</span> كجم</span></td></tr>`
+    : `<tr class="${x.adm ? 'adm' : ''}"><td>${x.ar}<span class="en">${esc(x.en)}</span></td>
     <td class="v num">${kg(x.v)}</td>
     <td class="v num tot">${kg(x.t)}${x.t >= 1000 ? `<span class="t">${fmt(x.t / 1000, 2)} طن</span>` : ''}</td></tr>`).join('');
 }
@@ -593,7 +609,8 @@ detEl.addEventListener('keydown', e => {
 function share(){
   const m = current(); if (!m) return;
   const lines = [`خلطة ${m.kind === 'regular' ? m.name : m.card + ' — ' + m.cls} — ${Number(qty) || 0} م³`];
-  rows(m).forEach(x => lines.push(`${x.ar.replace(/<[^>]+>/g, '')}${x.adm ? ' ' + x.en : ''}: ${kg(x.t)} كجم`));
+  rows(m).forEach(x => lines.push(`${x.ar.replace(/<[^>]+>/g, '')}${x.adm ? ' ' + x.en : ''}: ` +
+    (x.kg != null ? `${lit(x.t)} لتر` : `${kg(x.t)} كجم`)));
   const text = lines.join('\n');
   if (navigator.share) { navigator.share({ text }).catch(() => {}); return; }
   copy(text);
