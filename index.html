@@ -108,6 +108,9 @@ tr.adm td{background:var(--hl)}
 .actions{display:flex;gap:8px;margin-top:12px}
 .btn{flex:1;border:0;border-radius:12px;padding:12px;background:var(--accent);color:var(--accent-ink);font-weight:700}
 .btn.ghost{background:var(--chip);color:var(--ink)}
+.tabs{display:flex;gap:4px;background:var(--chip);padding:4px;border-radius:12px;margin-bottom:10px}
+.tab{flex:1;border:0;background:none;border-radius:9px;padding:9px 4px;font-weight:700;font-size:14px;color:var(--muted)}
+.tab.on{background:var(--card);color:var(--accent)}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);
   padding:8px 16px;border-radius:999px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;
   max-width:calc(100% - 32px);text-align:center}
@@ -160,7 +163,10 @@ function arName(en){
   if (/crushed stone/i.test(en)) return 'سن' + sz;
   if (/magnetite/i.test(en)) return 'مجنتيت' + sz;
   if (/steel shot/i.test(en)) return 'بلي حديد ' + esc(en.replace(/steel shot/i, '').trim());
+  if (/total water/i.test(en)) return 'مياه كلية';
+  if (/free water/i.test(en)) return 'مياه حرة';
   if (/water/i.test(en)) return 'مياه';
+  if (/^agg/i.test(en)) return 'سن <span class="num">' + esc(en.replace(/^agg\.?,?\s*/i, '')) + '</span>';
   return esc(en);
 }
 
@@ -215,6 +221,37 @@ function parseSheet(ws){
   }
   return mixes;
 }
+// Regular catalog: one row per mix under a header row whose first cell is "Class"
+function parseRegular(ws){
+  if (!ws || !ws['!ref']) return [];
+  const R = XLSX.utils.decode_range(ws['!ref']);
+  const cell = (r, c) => { const x = ws[XLSX.utils.encode_cell({ r, c })]; return x ? x.v : null; };
+  const shown = (r, c) => { const x = ws[XLSX.utils.encode_cell({ r, c })]; return x ? txt(x.w ?? x.v) : ''; };
+  let hr = -1, c0 = -1;
+  for (let r = R.s.r; r <= Math.min(R.e.r, R.s.r + 40) && hr < 0; r++)
+    for (let c = R.s.c; c <= Math.min(R.e.c, R.s.c + 5); c++)
+      if (/^Class$/i.test(txt(cell(r, c)))) { hr = r; c0 = c; break; }
+  if (hr < 0) return [];
+  const head = [];
+  for (let c = c0 + 1; c <= R.e.c; c++) { const t = txt(cell(hr, c)); if (t) head.push([c, t]); }
+  const colOf = re => { const x = head.find(([, t]) => re.test(t)); return x ? x[0] : -1; };
+  const cType = colOf(/^Cement type/i), cWc = colOf(/^W\/C/i), cAdd = colOf(/^Add/i), cDate = colOf(/^Date/i),
+        c7 = colOf(/^7/), c28 = colOf(/^28/);
+  const matCols = head.filter(([, t]) => /kg\s*$/i.test(t));
+  const at = (r, c) => c < 0 ? null : cell(r, c);
+  const mixes = [];
+  for (let r = hr + 1; r <= R.e.r; r++) {
+    const name = txt(cell(r, c0));
+    if (!name) continue;
+    const mats = matCols.map(([c, t]) => ({ n: t.replace(/,?\s*kg\s*$/i, ''), v: num(cell(r, c)) })).filter(x => x.v);
+    if (!mats.length) continue;
+    const adm = [], a = num(at(r, cAdd));
+    if (a) adm.push({ b: head.find(([c]) => c === cAdd)[1], v: a });
+    mixes.push({ name, ctype: txt(at(r, cType)), wc: num(at(r, cWc)), mats, adm,
+                 date: cDate < 0 ? '' : shown(r, cDate), s7: num(at(r, c7)), s28: num(at(r, c28)) });
+  }
+  return mixes;
+}
 function loadXLSX(){
   if (window.XLSX) return Promise.resolve();
   return new Promise((ok, fail) => {
@@ -225,7 +262,7 @@ function loadXLSX(){
 }
 function diff(oldM, newM){
   const keyed = list => { const seen = {}, out = {};
-    list.forEach(m => { const n = seen[m.card] = (seen[m.card] || 0) + 1; out[m.card + '#' + n] = JSON.stringify(m); });
+    list.forEach(m => { const id = m.card || m.name, n = seen[id] = (seen[id] || 0) + 1; out[id + '#' + n] = JSON.stringify(m); });
     return out; };
   const a = keyed(oldM), b = keyed(newM);
   let added = 0, changed = 0, removed = 0;
@@ -236,24 +273,38 @@ function diff(oldM, newM){
 async function importBuffer(buf, name){
   await loadXLSX();
   const wb = XLSX.read(buf, { type: 'array' });
-  let mixes = [];
-  for (const sn of wb.SheetNames) { mixes = parseSheet(wb.Sheets[sn]); if (mixes.length) break; }
-  if (!mixes.length) throw new Error('مفيش خلطات في الملف ده');
+  // The file's layout tells which catalog it is
+  let mixes = [], kind = '';
+  for (const sn of wb.SheetNames) {
+    const ws = wb.Sheets[sn];
+    if ((mixes = parseSheet(ws)).length) { kind = 'nuclear'; break; }
+    if ((mixes = parseRegular(ws)).length) { kind = 'regular'; break; }
+  }
+  if (!kind) throw new Error('مفيش خلطات في الملف ده');
   const d = new Date(), pad = n => String(n).padStart(2, '0');
-  useData({ src: 'excel', file: name, at: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
-            ver: d.toISOString(), mixes });
-}
-// Save + show new data, and say what changed
-function useData(data){
-  const ch = diff(DATA ? DATA.mixes : [], data.mixes), n = data.mixes.length;
-  if (!store.set('data', data)) throw new Error('مفيش مساحة لحفظ البيانات');
-  const first = !DATA;
-  setData(data);
+  const set = { src: 'excel', file: name, at: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`, mixes };
+  const ch = diff(DATA && DATA[kind] ? DATA[kind].mixes : [], mixes);
+  saveData({ ...(DATA || {}), ver: d.toISOString(), [kind]: set });
+  tab = kind; store.set('tab', tab); applyTab();
   go('');
-  if (first) toast(`تم — ${n} خلطة`);
-  else if (!ch.added && !ch.changed && !ch.removed) toast(`مفيش تغيير — ${n} خلطة`);
-  else toast([`اتحدث — ${n} خلطة`, ch.added && `${ch.added} جديدة`, ch.changed && `${ch.changed} اتعدلت`,
+  const label = `${KIND[kind]} — ${mixes.length} خلطة`;
+  if (!ch.added && !ch.changed && !ch.removed) toast(`مفيش تغيير · ${label}`, 2500);
+  else toast([`اتحدث · ${label}`, ch.added && `${ch.added} جديدة`, ch.changed && `${ch.changed} اتعدلت`,
               ch.removed && `${ch.removed} اتشالت`].filter(Boolean).join(' · '), 3500);
+}
+function saveData(data){
+  if (!store.set('data', data)) throw new Error('مفيش مساحة لحفظ البيانات');
+  setData(data);
+}
+// Built-in data arrived: stay quiet when nothing actually changed
+function useBundle(data, asked){
+  const sig = d => JSON.stringify(['nuclear', 'regular'].map(k => d && d[k] ? d[k].mixes : null));
+  const first = !DATA, same = !first && sig(DATA) === sig(data);
+  saveData(data);
+  if (same && !asked) { if (!current() && location.hash !== '#settings') route(); return; }
+  go('');
+  toast((first ? 'تم — ' : asked ? 'الخلطات الأساسية — ' : 'اتحدثت الخلطات — ') + ['nuclear', 'regular'].filter(k => data[k])
+    .map(k => `${data[k].mixes.length} ${KIND[k]}`).join(' · '), 3000);
 }
 
 /* ---------- built-in data: data.enc on GitHub, encrypted with the user's password ---------- */
@@ -269,7 +320,10 @@ async function decryptBundle(b, pwd){
   if (!await crypto.subtle.verify('HMAC', macKey, b64(b.mac), signed)) throw new Error('pwd');
   const aesKey = await crypto.subtle.importKey('raw', bits.slice(0, 32), 'AES-CBC', false, ['decrypt']);
   const data = JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({ name: 'AES-CBC', iv }, aesKey, ct)));
-  return { ...data, src: 'bundle', ver: b.ver };
+  const set = d => d && { ...d, src: 'bundle' };
+  // v1 bundles held only the nuclear catalog at the top level
+  return data.mixes ? { ver: b.ver, nuclear: set({ file: data.file, at: data.at, mixes: data.mixes }) }
+                    : { ver: b.ver, nuclear: set(data.nuclear), regular: set(data.regular) };
 }
 async function fetchBundle(){
   try {
@@ -281,17 +335,20 @@ async function fetchBundle(){
 // Load the built-in data when there is none yet, or when GitHub has a newer version than this phone
 async function syncBundle(force){
   if (!await fetchBundle()) return;
-  if (!force && DATA && DATA.ver >= BUNDLE.ver) return;
+  if (!force && DATA && DATA.nuclear && DATA.regular && DATA.ver >= BUNDLE.ver) return;
   const pwd = store.get('pwd', '');
   if (!pwd) { needPwd = true; toast(''); return go(''); }
-  await unlock(pwd);
+  await unlock(pwd, force);
 }
-async function unlock(pwd){
+async function unlock(pwd, asked){
   try {
     const data = await decryptBundle(BUNDLE, pwd);
     store.set('pwd', pwd);
     needPwd = false; pwdErr = '';
-    useData(data);
+    toast('');
+    // A phone that already imported a catalog the bundle lacks keeps its own copy
+    ['nuclear', 'regular'].forEach(k => { if (!data[k] && DATA && DATA[k]) data[k] = DATA[k]; });
+    useBundle(data, asked);
   } catch (e) {
     needPwd = true; pwdErr = e.message === 'pwd' ? 'الباسورد غلط' : 'حصلت مشكلة في قراءة البيانات';
     toast(''); go('');
@@ -320,33 +377,53 @@ fileEl.onchange = async () => {
 };
 
 /* ---------- data ---------- */
+const KIND = { nuclear: 'Nuclear', regular: 'Regular' };
+// DATA = { ver, nuclear: {src, file, at, mixes}, regular: {…} }; MIX = every mix, SORTED/CLASSES = the open tab
 let DATA = null, MIX = [], SORTED = [], CLASSES = [];
+let tab = store.get('tab', 'nuclear'), clsFilter = '', qty = '';
+const qEl = document.getElementById('q');
+
+function nuclearMix(m, i){
+  const card = String(m.card).trim();
+  const short = card.includes('/') ? card.split('/').slice(0, 2).join('/') : card.split('-')[0];
+  const cls = norm(m.cls);
+  return { ...m, kind: 'nuclear', i, card, short, rest: card.slice(short.length), cls, slump: norm(m.slump),
+           num: parseInt(short, 10), key: card + '|' + cls + '|' + (m.wb == null ? '' : Math.round(m.wb * 1000)) };
+}
+// "B25 / C30_C300350 SRC_Screed" → B25 · C30 · strength 300 · cement 350 · "SRC Screed"
+function regularMix(m, i){
+  const name = String(m.name).trim();
+  const p = norm(name).match(/^(B[\d.]+)\s*\/\s*(C\d+)\s*_?\s*C(\d{3})(\d{3})\s*(.*)$/);
+  const short = p ? p[1] : norm(name).split(/[\s\/]/)[0];
+  const tag = (p ? p[5] : '').replace(/_/g, ' ').trim();
+  const ctype = /^S[CR]{2}$/i.test(m.ctype) ? 'SRC' : norm(m.ctype);
+  return { ...m, kind: 'regular', i, name, short, cls: short, c: p ? p[2] : '', st: p ? p[3] : '', cem: p ? p[4] : '',
+           tag, ctype, num: parseFloat(short.slice(1)), find: norm(name).replace(/\s+/g, ''), key: 'R|' + name,
+           mats: m.mats.map(x => /^cement/i.test(x.n) ? { ...x, ar: 'أسمنت ' + esc(ctype) } : x) };
+}
 function setData(d){
+  // Data saved by the first version held only the nuclear catalog at the top level
+  if (d && d.mixes) d = { ver: d.ver, nuclear: { src: d.src, file: d.file, at: d.at, mixes: d.mixes } };
   DATA = d;
-  MIX = (d ? d.mixes : []).map((m, i) => {
-    const card = String(m.card).trim();
-    const short = card.includes('/') ? card.split('/').slice(0, 2).join('/') : card.split('-')[0];
-    const cls = norm(m.cls);
-    return { ...m, i, card, short, rest: card.slice(short.length), cls, slump: norm(m.slump),
-             num: parseInt(short, 10), key: card + '|' + cls + '|' + (m.wb == null ? '' : Math.round(m.wb * 1000)) };
-  });
+  MIX = [...(d && d.nuclear ? d.nuclear.mixes.map(nuclearMix) : []), ...(d && d.regular ? d.regular.mixes.map(regularMix) : [])];
   const count = {};
-  MIX.forEach(m => count[m.card] = (count[m.card] || 0) + 1);
+  MIX.forEach(m => { if (m.card) count[m.card] = (count[m.card] || 0) + 1; });
   MIX.forEach(m => m.multi = count[m.card] > 1);
-  SORTED = [...MIX].sort((a, b) => (a.card.includes('/') - b.card.includes('/')) || (a.num - b.num) || (a.i - b.i));
-  CLASSES = [...new Set(MIX.map(m => m.cls))].sort((a, b) =>
+  document.getElementById('searchBox').classList.toggle('hidden', !d);
+  applyTab();
+}
+function applyTab(){
+  const list = MIX.filter(m => m.kind === tab);
+  SORTED = tab === 'regular' ? list.sort((a, b) => (a.num - b.num) || (a.i - b.i))
+    : list.sort((a, b) => (a.card.includes('/') - b.card.includes('/')) || (a.num - b.num) || (a.i - b.i));
+  CLASSES = [...new Set(SORTED.map(m => m.cls))].sort((a, b) =>
     a[0].localeCompare(b[0]) || parseFloat(a.slice(1)) - parseFloat(b.slice(1)));
   if (!CLASSES.includes(clsFilter)) clsFilter = '';
-  document.getElementById('built').textContent = d ? `${MIX.length} خلطة` : '';
-  document.getElementById('searchBox').classList.toggle('hidden', !d);
+  document.getElementById('built').textContent = DATA ? `${SORTED.length} خلطة` : '';
+  qEl.placeholder = tab === 'regular' ? 'الرتبة… 25 / 300 / B25' : 'رقم الخلطة… 011 / 085 / 2018';
   renderChips();
 }
 const byKey = k => MIX.find(m => m.key === k);
-
-/* ---------- state ---------- */
-const qEl = document.getElementById('q');
-let clsFilter = '';
-let qty = '';
 
 /* keyboard toggle (numbers / letters) */
 const kbdBtn = document.getElementById('kbd');
@@ -361,7 +438,7 @@ kbdBtn.onclick = () => { setKbd(qEl.getAttribute('inputmode') === 'numeric' ? 't
 /* class chips */
 const clsEl = document.getElementById('cls');
 function renderChips(){
-  clsEl.innerHTML = MIX.length ? ['', ...CLASSES].map(c =>
+  clsEl.innerHTML = SORTED.length ? ['', ...CLASSES].map(c =>
     `<button class="chip${c === clsFilter ? ' on' : ''}" data-c="${esc(c)}">${c || 'الكل'}</button>`).join('') : '';
 }
 clsEl.onclick = e => {
@@ -374,22 +451,37 @@ function results(){
   const q = norm(qEl.value).replace(/\s+/g, '');
   let list = clsFilter ? SORTED.filter(m => m.cls === clsFilter) : SORTED;
   if (!q) return { list, best: null };
-  if (/^[A-Z]/.test(q)) return { list: list.filter(m => m.cls.startsWith(q) || m.slump.startsWith(q)), best: null };
-  const qn = /^\d+$/.test(q) ? parseInt(q, 10) : NaN;
+  const reg = tab === 'regular';
+  if (/^[A-Z]/.test(q)) return { best: null, list: list.filter(m =>
+    reg ? m.find.includes(q) : m.cls.startsWith(q) || m.slump.startsWith(q)) };
+  const qn = /^\d+(\.\d+)?$/.test(q) ? parseFloat(q) : NaN;
   const scored = list.map(m => {
     let s = 0;
-    if (m.num === qn || m.short === q) s = 3;
+    if (reg) {
+      // 25 → B25 first, then the mixes with strength or cement content 25x, then anything containing it
+      if (m.num === qn) s = 3;
+      else if (m.st === q || m.cem === q) s = 2;
+      else if (q.length >= 3 && m.find.includes(q)) s = 1;
+    }
+    else if (m.num === qn || m.short === q) s = 3;
     else if (m.short.startsWith(q)) s = 2;
     else if (m.card.replace(/\s+/g, '').replace(/-20-20\d\d$/, '').includes(q)) s = 1;
     return [s, m];
   }).filter(x => x[0]).sort((a, b) => b[0] - a[0]);
-  return { list: scored.map(x => x[1]), best: scored.length && scored[0][0] === 3 ? scored[0][1] : null };
+  const top = scored.filter(x => x[0] === 3);
+  return { list: scored.map(x => x[1]), best: top.length === 1 ? top[0][1] : null };
 }
 
 function tile(m, best){
-  const sub = m.multi ? 'W/B ' + fmt(m.wb, 2) : m.slump;
+  const [mid, sub] = m.kind === 'regular'
+    ? [[m.c, m.cem].filter(Boolean).join(' · '), [m.ctype === 'OPC' ? 'CEM I' : m.ctype, /screed/i.test(m.tag) ? 'Screed' : ''].filter(Boolean).join(' · ')]
+    : [m.cls, m.multi ? 'W/B ' + fmt(m.wb, 2) : m.slump];
   return `<button class="tile${best ? ' best' : ''}" data-k="${esc(m.key)}">
-    <b class="num">${esc(m.short)}</b><span class="cls">${esc(m.cls)}</span><span class="sub num">${esc(sub)}</span></button>`;
+    <b class="num">${esc(m.short)}</b><span class="cls num">${esc(mid)}</span><span class="sub num">${esc(sub)}</span></button>`;
+}
+function tabsHtml(){
+  return `<div class="tabs">${Object.keys(KIND).map(k =>
+    `<button class="tab${k === tab ? ' on' : ''}" data-tab="${k}">${KIND[k]} Concrete</button>`).join('')}</div>`;
 }
 
 const listEl = document.getElementById('list'), detEl = document.getElementById('detail');
@@ -403,13 +495,20 @@ function renderList(){
   }
   const { list, best } = results();
   let h = needPwd ? lockCard() : '';
-  h += `<div class="sec">${qEl.value || clsFilter ? 'النتائج (' + list.length + ')' : 'كل الخلطات'}</div>`;
+  h += `<div class="sec">كل الخلطات</div>${tabsHtml()}`;
+  if (qEl.value || clsFilter) h += `<div class="sec">النتائج (${list.length})</div>`;
   h += list.length ? `<div class="grid">${list.map(m => tile(m, m === best)).join('')}</div>`
-                   : `<div class="empty">مفيش خلطة بالرقم ده</div>`;
+    : `<div class="empty">${SORTED.length ? 'مفيش خلطة بالرقم ده' : `مفيش خلطات ${KIND[tab]} لسه — اعمل Import من الإعدادات`}</div>`;
   listEl.innerHTML = h;
 }
 listEl.onclick = e => {
   if (e.target.id === 'impFirst') return fileEl.click();
+  if (e.target.dataset.tab) {
+    tab = e.target.dataset.tab; store.set('tab', tab);
+    qEl.value = ''; clsFilter = '';
+    applyTab(); renderList();
+    return;
+  }
   const t = e.target.closest('.tile'); if (t) go(t.dataset.k);
 };
 qEl.addEventListener('input', () => { if (location.hash) go(''); else renderList(); });
@@ -423,7 +522,7 @@ qEl.addEventListener('keydown', e => {
 /* ---------- detail ---------- */
 function rows(m){
   const f = Number(qty) || 0;
-  const r = m.mats.map(x => ({ ar: arName(x.n), en: x.n, v: x.v, adm: false }));
+  const r = m.mats.map(x => ({ ar: x.ar || arName(x.n), en: x.n, v: x.v, adm: false }));
   m.adm.forEach((a, i) => r.push({ ar: 'إضافة ' + (i + 1), en: a.b, v: a.v, adm: true }));
   r.forEach(x => x.t = x.v == null ? null : x.v * f);
   return r;
@@ -431,14 +530,22 @@ function rows(m){
 function renderDetail(m){
   const r = rows(m);
   const fact = (k, v, wide) => v == null || v === '' ? '' : `<div class="fact${wide ? ' wide' : ''}"><span>${k}</span><b class="num">${esc(v)}</b></div>`;
-  detEl.innerHTML = `
-    <button class="back" id="back">→ كل الخلطات</button>
+  const head = m.kind === 'regular' ? `
+    <div class="head"><h2 class="num">${esc(m.short)}<small>${m.c ? ' / ' + esc(m.c) : ''}</small></h2>
+      <span class="badge">${esc(m.ctype === 'OPC' ? 'CEM I' : m.ctype)}</span></div>
+    <div class="facts">
+      ${fact('Cement (kg)', m.cem)}${fact('W/C', m.wc == null ? null : fmt(m.wc, 2))}${fact('Cement type', m.ctype)}
+      ${fact('Date of trial', m.date)}${fact('7 يوم', m.s7 == null ? null : fmt(m.s7, 2))}${fact('28 يوم', m.s28 == null ? null : fmt(m.s28, 2))}
+      ${fact('Class', m.name, true)}
+    </div>` : `
     <div class="head"><h2 class="num">${esc(m.short)}<small>${esc(m.rest)}</small></h2><span class="badge">${esc(m.cls)}</span></div>
     <div class="facts">
       ${fact('Slump / Flow', m.slump)}${fact('W/B', m.wb == null ? null : fmt(m.wb, 2))}${fact('Water Res.', m.wres)}
       ${fact('Density', m.dens == null ? null : fmt(m.dens, 0))}${fact('Min. St. (MPa)', m.minSt == null ? null : fmt(m.minSt, 1))}
       ${fact('28 يوم (MPa)', m.s28 == null ? null : fmt(m.s28, 1))}${fact('Exposure', m.exp && m.exp !== '-' ? m.exp : null, true)}
-    </div>
+    </div>`;
+  detEl.innerHTML = `
+    <button class="back" id="back">→ كل الخلطات</button>${head}
     <div class="qty">
       <div class="qrow">
         <label for="qty">الكمية م³</label>
@@ -485,7 +592,7 @@ detEl.addEventListener('keydown', e => {
 
 function share(){
   const m = current(); if (!m) return;
-  const lines = [`خلطة ${m.card} — ${m.cls} — ${Number(qty) || 0} م³`];
+  const lines = [`خلطة ${m.kind === 'regular' ? m.name : m.card + ' — ' + m.cls} — ${Number(qty) || 0} م³`];
   rows(m).forEach(x => lines.push(`${x.ar.replace(/<[^>]+>/g, '')}${x.adm ? ' ' + x.en : ''}: ${kg(x.t)} كجم`));
   const text = lines.join('\n');
   if (navigator.share) { navigator.share({ text }).catch(() => {}); return; }
@@ -515,20 +622,23 @@ function go(key){
   else route();
 }
 function renderSettings(){
-  const src = !DATA ? '—' : DATA.src === 'excel' ? 'ملف Excel من الموبايل' : 'الخلطات الأساسية';
+  const info = k => {
+    const d = DATA && DATA[k];
+    return `<div class="box"><h3>${KIND[k]} Concrete</h3>${d ? `
+      <div class="kv"><span>المصدر</span><b>${d.src === 'excel' ? 'ملف Excel من الموبايل' : 'الخلطات الأساسية'}</b></div>
+      <div class="kv"><span>الملف</span><b class="num">${esc(d.file)}</b></div>
+      <div class="kv"><span>التاريخ</span><b class="num">${esc(d.at)}</b></div>
+      <div class="kv"><span>عدد الخلطات</span><b class="num">${d.mixes.length}</b></div>` : '<p>مفيش خلطات لسه.</p>'}</div>`;
+  };
+  const imported = DATA && Object.keys(KIND).some(k => DATA[k] && DATA[k].src === 'excel');
   detEl.innerHTML = `<div class="set">
     <button class="back" id="back">→ رجوع</button>
     <h2>الإعدادات</h2>
-    <div class="box"><h3>الخلطات الحالية</h3>
-      <div class="kv"><span>المصدر</span><b>${src}</b></div>
-      ${DATA ? `<div class="kv"><span>الملف</span><b class="num">${esc(DATA.file)}</b></div>
-      <div class="kv"><span>التاريخ</span><b class="num">${esc(DATA.at)}</b></div>
-      <div class="kv"><span>عدد الخلطات</span><b class="num">${MIX.length}</b></div>` : ''}
-    </div>
+    ${info('nuclear')}${info('regular')}
     <div class="box"><h3>تحديث الخلطات من Excel</h3>
-      <p>اختار ملف الكتالوج الجديد، والخلطات هتتحدث على الموبايل ده.</p>
+      <p>اختار ملف الكتالوج الجديد (Nuclear أو Regular). التطبيق بيعرف نوعه لوحده وبيحدّث الخلطات بتاعته بس.</p>
       <button class="btn" id="setImport">Import ملف Excel</button>
-      ${DATA && DATA.src === 'excel' && BUNDLE ? '<button class="btn ghost" id="setReset">رجوع للخلطات الأساسية</button>' : ''}
+      ${imported && BUNDLE ? '<button class="btn ghost" id="setReset">رجوع للخلطات الأساسية</button>' : ''}
     </div></div>`;
 }
 function route(){

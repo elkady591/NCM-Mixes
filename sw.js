@@ -1,5 +1,5 @@
 // Bump VERSION on every change so phones pick up the new files.
-const VERSION = 'ncm-mixes-v5';
+const VERSION = 'ncm-mixes-v6';
 const FILES = ['./', 'index.html', 'manifest.json', 'xlsx.full.min.js', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png'];
 
 self.addEventListener('install', e => {
