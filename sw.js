@@ -1,5 +1,5 @@
 // Bump VERSION on every change so phones pick up the new files.
-const VERSION = 'ncm-mixes-v7';
+const VERSION = 'ncm-mixes-v8';
 const FILES = ['./', 'index.html', 'manifest.json', 'xlsx.full.min.js', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png'];
 
 self.addEventListener('install', e => {
@@ -17,6 +17,8 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
+  // Libraries from CDNs (PDF reading) are left to the browser
+  if (new URL(e.request.url).origin !== location.origin) return;
   const path = new URL(e.request.url).pathname;
   // Mix data always comes from the network (the app keeps its own copy for offline use)
   if (path.endsWith('/data.enc')) return;

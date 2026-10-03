@@ -108,6 +108,16 @@ tr.adm td{background:var(--hl)}
 .actions{display:flex;gap:8px;margin-top:12px}
 .btn{flex:1;border:0;border-radius:12px;padding:12px;background:var(--accent);color:var(--accent-ink);font-weight:700}
 .btn.ghost{background:var(--chip);color:var(--ink)}
+.rvg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.rv{border:1.5px solid var(--line);border-radius:10px;padding:6px;background:var(--bg)}
+.rv:first-child{grid-column:1/-1}
+.rv span{display:block;font-size:11px;color:var(--muted);direction:ltr;text-align:left}
+.rv img{display:block;max-width:100%;height:30px;object-fit:contain;object-position:left;background:#fff;border-radius:4px;margin:3px 0}
+.rv input{width:100%;font:inherit;font-size:17px;font-weight:700;padding:5px 8px;border-radius:8px;border:1px solid var(--line);
+  background:var(--card);color:var(--ink);direction:ltr}
+.rv.bad{border-color:#d32f2f;background:rgba(211,47,47,.1)}
+details.box summary{font-weight:700;cursor:pointer}
+details.box[open] summary{margin-bottom:8px}
 .tabs{display:flex;gap:4px;background:var(--chip);padding:4px;border-radius:12px;margin-bottom:10px}
 .tab{flex:1;border:0;background:none;border-radius:9px;padding:9px 4px;font-weight:700;font-size:14px;color:var(--muted)}
 .tab.on{background:var(--card);color:var(--accent)}
@@ -136,7 +146,7 @@ tr.adm td{background:var(--hl)}
   <main id="detail" class="hidden"></main>
 </div>
 <input type="file" id="file" class="hidden"
-  accept=".xlsx,.xlsm,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel">
+  accept=".xlsx,.xlsm,.xls,.pdf,image/*,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel">
 <div class="toast" id="toast"></div>
 
 <script>
@@ -221,6 +231,30 @@ function parseSheet(ws){
   }
   return mixes;
 }
+// One spelling per Regular column, however the Excel or the scanned PDF wrote it
+function regHead(v){
+  const t = txt(v).replace(/\s+/g, ' ');
+  if (/cement\s*type/i.test(t)) return 'Cement type';
+  if (/cement/i.test(t)) return 'Cement, kg';
+  if (/sand/i.test(t)) return 'Sand, kg';
+  if (/agg.*20\s*mm/i.test(t)) return 'Agg 1.5 (20mm), kg';
+  if (/agg.*10\s*mm/i.test(t)) return 'Agg 1 (10mm), kg';
+  if (/total\s*water/i.test(t)) return 'Total Water, kg';
+  if (/free\s*water/i.test(t)) return 'Free Water, kg';
+  if (/w\s*\/\s*c/i.test(t)) return 'W/C';
+  if (/add.*type/i.test(t)) return 'Add-Type G';
+  if (/date/i.test(t)) return 'Date of trial';
+  if (/28.{0,3}day/i.test(t)) return '28-days test result';
+  if (/7.{0,3}day/i.test(t)) return '7-days test result';
+  return t;
+}
+// "B25 /C30 C300350 SRC Screed" (a scan loses the underscores) → "B25 / C30_C300350 SRC_Screed"
+function regClass(v){
+  const p = txt(v).match(/(B[\d.]+)\s*\/\s*(C\d+)[\s_]*C(\d{6})[\s_]*(.*)$/i);
+  if (!p) return txt(v);
+  // (?![a-z]) keeps the "Scr" of "Screed" from reading as SRC
+  return `${p[1].toUpperCase()} / ${p[2].toUpperCase()}_C${p[3]} ${/S[RC]{2}(?![a-z])/i.test(p[4]) ? 'SRC' : 'CEM I'}${/screed/i.test(p[4]) ? '_Screed' : ''}`;
+}
 // Regular catalog: one row per mix under a header row whose first cell is "Class"
 function parseRegular(ws){
   if (!ws || !ws['!ref']) return [];
@@ -233,15 +267,16 @@ function parseRegular(ws){
       if (/^Class$/i.test(txt(cell(r, c)))) { hr = r; c0 = c; break; }
   if (hr < 0) return [];
   const head = [];
-  for (let c = c0 + 1; c <= R.e.c; c++) { const t = txt(cell(hr, c)); if (t) head.push([c, t]); }
+  for (let c = c0 + 1; c <= R.e.c; c++) { const t = regHead(cell(hr, c)); if (t) head.push([c, t]); }
   const colOf = re => { const x = head.find(([, t]) => re.test(t)); return x ? x[0] : -1; };
   const cType = colOf(/^Cement type/i), cWc = colOf(/^W\/C/i), cAdd = colOf(/^Add/i), cDate = colOf(/^Date/i),
         c7 = colOf(/^7/), c28 = colOf(/^28/);
   const matCols = head.filter(([, t]) => /kg\s*$/i.test(t));
+  if (!matCols.length) throw new Error('عناوين أعمدة الخامات مش مقروءة (لازم تنتهي بـ kg)');
   const at = (r, c) => c < 0 ? null : cell(r, c);
   const mixes = [];
   for (let r = hr + 1; r <= R.e.r; r++) {
-    const name = txt(cell(r, c0));
+    const name = regClass(cell(r, c0));
     if (!name) continue;
     const mats = matCols.map(([c, t]) => ({ n: t.replace(/,?\s*kg\s*$/i, ''), v: num(cell(r, c)) })).filter(x => x.v);
     if (!mats.length) continue;
@@ -273,16 +308,18 @@ function diff(oldM, newM){
 async function importBuffer(buf, name){
   await loadXLSX();
   const wb = XLSX.read(buf, { type: 'array' });
+  importSheets(wb.SheetNames.map(sn => wb.Sheets[sn]), name, 'excel');
+}
+function importSheets(sheets, name, src){
   // The file's layout tells which catalog it is
   let mixes = [], kind = '';
-  for (const sn of wb.SheetNames) {
-    const ws = wb.Sheets[sn];
+  for (const ws of sheets) {
     if ((mixes = parseSheet(ws)).length) { kind = 'nuclear'; break; }
     if ((mixes = parseRegular(ws)).length) { kind = 'regular'; break; }
   }
   if (!kind) throw new Error('مفيش خلطات في الملف ده');
   const d = new Date(), pad = n => String(n).padStart(2, '0');
-  const set = { src: 'excel', file: name, at: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`, mixes };
+  const set = { src, file: name, at: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`, mixes };
   const ch = diff(DATA && DATA[kind] ? DATA[kind].mixes : [], mixes);
   saveData({ ...(DATA || {}), ver: d.toISOString(), [kind]: set });
   tab = kind; store.set('tab', tab); applyTab();
@@ -367,12 +404,245 @@ document.addEventListener('submit', e => {
   if (v) { toast('بيفتح…', 10000); unlock(v); }
 });
 
+/* ---------- PDF / picture import: find the table lines, read every cell on its own, then the user checks ---------- */
+const PDFJS = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';
+const TESS = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+const loadScript = src => new Promise((ok, fail) => {
+  const s = document.createElement('script');
+  s.src = src; s.onload = ok; s.onerror = () => fail(new Error('قراءة الـ PDF محتاجة نت'));
+  document.head.appendChild(s);
+});
+async function pdfPages(buf){
+  if (!window.pdfjsLib) { await loadScript(PDFJS + 'pdf.min.js'); pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS + 'pdf.worker.min.js'; }
+  const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+  return { count: Math.min(pdf.numPages, 5), page: async n => {
+    const page = await pdf.getPage(n), base = page.getViewport({ scale: 1 });
+    const vp = page.getViewport({ scale: Math.min(4.6, 4000 / Math.max(base.width, base.height)) });
+    const c = document.createElement('canvas'); c.width = Math.round(vp.width); c.height = Math.round(vp.height);
+    const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+    await page.render({ canvasContext: ctx, viewport: vp }).promise;
+    return c;
+  } };
+}
+async function pictureCanvas(blob){
+  const bmp = await createImageBitmap(blob);
+  const k = Math.max(1, Math.min(3, 3600 / Math.max(bmp.width, bmp.height)));
+  const c = document.createElement('canvas'); c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+  const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+  ctx.imageSmoothingQuality = 'high'; ctx.drawImage(bmp, 0, 0, c.width, c.height);
+  return c;
+}
+// Table lines = long dark runs. Returns the row and column borders of the biggest evenly-spaced table.
+function findGrid(canvas){
+  const W = canvas.width, H = canvas.height, px = canvas.getContext('2d').getImageData(0, 0, W, H).data;
+  const dark = new Uint8Array(W * H);
+  for (let i = 0, p = 0; i < dark.length; i++, p += 4) dark[i] = (px[p] * 3 + px[p + 1] * 6 + px[p + 2]) / 10 < 200 ? 1 : 0;
+  const group = (hits, gap) => { const out = [];
+    hits.forEach(h => { const g = out[out.length - 1];
+      if (g && h.p - g.b <= gap) { g.b = h.p; g.x0 = Math.min(g.x0, h.x0); g.x1 = Math.max(g.x1, h.x1); } else out.push({ a: h.p, b: h.p, x0: h.x0, x1: h.x1 }); });
+    return out.map(g => ({ p: (g.a + g.b) >> 1, x0: g.x0, x1: g.x1 })); };
+  const minH = Math.max(60, W * 0.03), hits = [];
+  for (let y = 0; y < H; y++) {
+    let run = 0, sum = 0, x0 = W, x1 = 0;
+    for (let x = 0; x <= W; x++) {
+      if (x < W && dark[y * W + x]) run++;
+      else { if (run >= minH) { sum += run; x0 = Math.min(x0, x - run); x1 = Math.max(x1, x); } run = 0; }
+    }
+    if (sum > W * 0.2) hits.push({ p: y, x0, x1 });
+  }
+  const lines = group(hits, 4);
+  // Body = the longest run of evenly spaced lines
+  let best = null;
+  for (let i = 0; i < lines.length - 1; i++) {
+    const g0 = lines[i + 1].p - lines[i].p;
+    if (g0 < 12 || g0 > H * 0.08) continue;
+    let j = i + 1;
+    while (j + 1 < lines.length && Math.abs(lines[j + 1].p - lines[j].p - g0) <= g0 * 0.3) j++;
+    if (j - i >= 3 && (!best || j - i > best.j - best.i)) best = { i, j, rowH: g0 };
+  }
+  if (!best) return null;
+  let body = lines.slice(best.i, best.j + 1);
+  // Faint lines are found in pieces and other marks share their rows, so the table edge is where most lines agree
+  const agree = (vals, pick) => {
+    const votes = vals.map(v => vals.filter(u => Math.abs(u - v) <= 8).length), top = Math.max(...votes);
+    return pick(...vals.filter((v, i) => votes[i] === top));
+  };
+  const x0 = agree(body.map(l => l.x0), Math.min), x1 = agree(body.map(l => l.x1), Math.max);
+  // A taller header row sits right above the body
+  // (a line that spans only some columns splits the header in two and is skipped)
+  let top = null;
+  for (let k = best.i - 1; k >= 0 && body[0].p - lines[k].p < best.rowH * 8; k--)
+    if (Math.min(x1, lines[k].x1) - Math.max(x0, lines[k].x0) > (x1 - x0) * 0.8) top = lines[k];
+  if (top) body = [top, ...body];
+  const ys = body.map(l => l.p), yA = lines[best.i].p, yB = ys[ys.length - 1];
+  const minV = Math.max(10, best.rowH * 0.7), vh = [];
+  for (let x = Math.max(0, x0 - 8); x < Math.min(W, x1 + 8); x++) {
+    let run = 0, sum = 0;
+    for (let y = yA; y <= yB + 1; y++) {
+      if (y <= yB && dark[y * W + x]) run++;
+      else { if (run >= minV) sum += run; run = 0; }
+    }
+    if (sum > (yB - yA) * 0.15) vh.push({ p: x, x0: 0, x1: 0 });
+  }
+  const xs = group(vh, 4).map(l => l.p);
+  // The outer border is often the faintest line: the table still starts and ends where its rows do
+  if (xs.length && xs[0] - x0 > best.rowH) xs.unshift(x0);
+  if (xs.length && x1 - xs[xs.length - 1] > best.rowH) xs.push(x1);
+  if (xs.length < 3) return null;
+  return { xs, ys, rowH: best.rowH };
+}
+function cellCanvas(src, x, y, w, h, k = 1){
+  const pad = 14, c = document.createElement('canvas');
+  c.width = Math.round(w * k) + pad * 2; c.height = Math.round(h * k) + pad * 2;
+  const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(src, x, y, w, h, pad, pad, c.width - pad * 2, c.height - pad * 2);
+  return c;
+}
+let REVIEW = null;
+async function importScan(file){
+  const isPdf = /pdf$/i.test(file.type) || /\.pdf$/i.test(file.name);
+  let canvas = null, grid = null;
+  if (isPdf) {
+    const doc = await pdfPages(await file.arrayBuffer());
+    for (let n = 1; n <= doc.count && !grid; n++) { canvas = await doc.page(n); grid = findGrid(canvas); }
+  } else { canvas = await pictureCanvas(file); grid = findGrid(canvas); }
+  if (!grid) throw new Error('مقدرتش ألاقي جدول بخطوط واضحة في الملف');
+  const R = grid.ys.length - 1, C = grid.xs.length - 1;
+  if (R * C > 500) throw new Error('الجدول كبير قوي على القراءة من صورة — استخدم ملف Excel');
+  if (!window.Tesseract) await loadScript(TESS);
+  const worker = await Tesseract.createWorker('eng');
+  const inset = Math.max(3, Math.round(grid.rowH * 0.14));
+  const read = async (r, c, numeric, block) => {
+    const x = grid.xs[c] + inset, y = grid.ys[r] + inset, w = grid.xs[c + 1] - inset - x, h = grid.ys[r + 1] - inset - y;
+    const cc = cellCanvas(canvas, x, y, w, h);
+    await worker.setParameters({ tessedit_pageseg_mode: block ? '6' : '7', tessedit_char_whitelist: numeric ? '0123456789.-' : '' });
+    const clean = d => d.text.replace(/\s+/g, ' ').replace(/\|/g, 'I').trim();
+    const d = (await worker.recognize(cc)).data, out = { v: clean(d), conf: d.confidence, img: cc.toDataURL('image/png') };
+    // Every number is read twice at two sizes; if the readings differ, the cell is marked for checking
+    if (numeric && clean((await worker.recognize(cellCanvas(canvas, x, y, w, h, 1.6))).data) !== out.v) out.conf = 0;
+    return out;
+  };
+  try {
+    const rows = [];
+    for (let r = 0; r < R; r++) {
+      const row = [];
+      for (let c = 0; c < C; c++) {
+        toast(`بيقرا الجدول… ${Math.round((r * C + c) * 100 / (R * C))}%`, 20000);
+        const head = r === 0, name = head ? '' : regHead(rows[0][c].v);
+        row.push(await read(r, c, !head && c > 0 && !/type$|^date|^class$/i.test(name), head));
+      }
+      rows.push(row);
+    }
+    rows[0].forEach(x => x.v = regHead(x.v));
+    const heads = rows[0].map(x => x.v), body = rows.slice(1);
+    // An unreadable header over a column of 0.xx values is the W/C column
+    heads.forEach((h, c) => {
+      if (!h && !heads.includes('W/C') && body.filter(r => /^0\.\d+$/.test(r[c].v)).length > body.length / 2) rows[0][c].v = heads[c] = 'W/C';
+    });
+    body.forEach(row => row.forEach((x, c) => {
+      const h = heads[c];
+      if (/^class$/i.test(h)) x.v = regClass(x.v);
+      // The class name already says which cement it is
+      else if (/type$/i.test(h)) x.v = /^(OPC|SRC|SCR)$/i.test(x.v) ? x.v.toUpperCase() : / SRC/.test(regClass(row[0].v)) ? 'SRC' : 'OPC';
+      // A lost decimal point: offer the value that fits the column, but keep it marked for checking
+      else if (/^\d{2,4}$/.test(x.v) && suspect(h, { ...x, conf: 100 }, row, heads))
+        for (const k of [1, 2]) {
+          const v = x.v.slice(0, -k) + '.' + x.v.slice(-k);
+          if (x.v.length > k && !suspect(h, { v, conf: 100 }, row, heads)) { x.v = v; x.guess = true; break; }
+        }
+    }));
+    REVIEW = { file: file.name, rows };
+    toast('');
+    location.hash = 'review';
+    if (location.hash === '#review') route();
+  } finally { worker.terminate(); }
+}
+// Which read values look wrong and must be compared with the picture
+function suspect(head, x, row, heads){
+  if (x.ok) return false;          // the user tapped the picture: checked
+  if (x.guess) return true;
+  const v = x.v, n = /^-?\d+(\.\d+)?$/.test(v) ? parseFloat(v) : NaN;
+  const within = (a, b) => !isNaN(n) && n >= a && n <= b;
+  if (/^class$/i.test(head)) {
+    // The name must be complete, and it repeats the strength (C30 → C300) and the cement content
+    const p = v.match(/^B[\d.]+ \/ C(\d+)_C(\d{3})(\d{3}) (CEM I|SRC)(_Screed)?$/), ci = heads.findIndex(h => /^cement,/i.test(h));
+    return !p || +p[2] !== +p[1] * 10 || (ci >= 0 && parseFloat(row[ci].v) !== +p[3]);
+  }
+  if (/type$/i.test(head)) return !/^(OPC|SRC|SCR)$/i.test(v);
+  if (/^date/i.test(head)) return !/^\d{1,2}-[A-Za-z]{3}-\d{2,4}$/.test(v);
+  if (x.conf < 80) return true;
+  if (/^cement/i.test(head)) return !within(100, 700);
+  if (/water/i.test(head)) return !within(80, 350);
+  if (/kg$/i.test(head)) return v === '' || /^-+$/.test(v) ? false : !within(100, 2000);
+  if (/^w\/c/i.test(head)) {
+    const get = re => { const i = heads.findIndex(h => re.test(h)); return i < 0 ? NaN : parseFloat(row[i].v); };
+    const calc = get(/^free water/i) / get(/^cement,/i);
+    return !within(0.2, 1.2) || !v.includes('.') || (!isNaN(calc) && Math.abs(calc - n) > 0.02);
+  }
+  if (/^add/i.test(head)) return !within(0.5, 20) || !v.includes('.');
+  if (/day/i.test(head)) return !within(3, 150) || !v.includes('.');
+  return false;
+}
+function renderReview(){
+  const { rows } = REVIEW, heads = rows[0].map(x => x.v);
+  const field = (r, c) => { const x = rows[r][c], bad = r > 0 && suspect(heads[c], x, rows[r], heads);
+    return `<div class="rv${bad ? ' bad' : ''}"><span>${r ? esc(heads[c]) || 'عمود ' + (c + 1) : 'عمود ' + (c + 1)}</span>
+      <img src="${x.img}" alt=""><input data-r="${r}" data-c="${c}" value="${esc(x.v)}" autocomplete="off" autocapitalize="off" spellcheck="false"></div>`; };
+  const bad = rows.slice(1).reduce((n, row) => n + row.filter((x, c) => suspect(heads[c], x, row, heads)).length, 0);
+  detEl.innerHTML = `<div class="set">
+    <button class="back" id="rvCancel">→ إلغاء</button>
+    <h2>مراجعة قبل الحفظ</h2>
+    <div class="box"><p>قارن كل رقم بالصورة اللي فوقه وصحّح اللي غلط.<br>
+      لو خانة حمرا والرقم صح، دوس على صورتها.<br>
+      <b class="${bad ? 'err' : ''}" id="rvCount">${bad ? bad + ' خانة باللون الأحمر محتاجة مراجعة' : 'مفيش خانات مشكوك فيها'}</b></p></div>
+    <details class="box"><summary>عناوين الأعمدة</summary><div class="rvg">${rows[0].map((x, c) => field(0, c)).join('')}</div></details>
+    ${rows.slice(1).map((row, i) => `<div class="box"><h3 class="num">${i + 1} — ${esc(row[0].v)}</h3>
+      <div class="rvg">${row.map((x, c) => field(i + 1, c)).join('')}</div></div>`).join('')}
+    <div class="actions"><button class="btn" id="rvSave">حفظ الخلطات</button><button class="btn ghost" id="rvCancel2">إلغاء</button></div></div>`;
+}
+function wireReview(){
+  detEl.addEventListener('input', e => {
+    const t = e.target; if (!REVIEW || t.dataset.r == null) return;
+    const r = +t.dataset.r, c = +t.dataset.c, rows = REVIEW.rows;
+    Object.assign(rows[r][c], { v: t.value.trim(), conf: 100, guess: false, ok: false });   // typed by a person
+    if (r) recheck(r);
+  });
+  const recheck = r => {
+    const rows = REVIEW.rows, heads = rows[0].map(x => x.v);
+    detEl.querySelectorAll(`input[data-r="${r}"]`).forEach(inp =>
+      inp.parentNode.classList.toggle('bad', suspect(heads[+inp.dataset.c], rows[r][+inp.dataset.c], rows[r], heads)));
+    const bad = detEl.querySelectorAll('.rv.bad').length, el = document.getElementById('rvCount');
+    el.textContent = bad ? bad + ' خانة باللون الأحمر محتاجة مراجعة' : 'مفيش خانات مشكوك فيها';
+    el.className = bad ? 'err' : '';
+  };
+  detEl.addEventListener('click', async e => {
+    // Tapping the picture of a red cell = "I compared it, the value is right"
+    const card = REVIEW && e.target.tagName === 'IMG' && e.target.closest('.rv.bad');
+    if (card) { const inp = card.querySelector('input'); REVIEW.rows[+inp.dataset.r][+inp.dataset.c].ok = true; return recheck(+inp.dataset.r); }
+    if (e.target.id === 'rvCancel' || e.target.id === 'rvCancel2') { REVIEW = null; return go(''); }
+    if (e.target.id !== 'rvSave') return;
+    const bad = detEl.querySelectorAll('.rv.bad').length;
+    if (bad && !confirm(`لسه فيه ${bad} خانة باللون الأحمر. تحفظ برضه؟`)) return;
+    try {
+      await loadXLSX();
+      const aoa = REVIEW.rows.map((row, r) => row.map(x => r && /^-?\d+(\.\d+)?$/.test(x.v) ? parseFloat(x.v) : /^-+$/.test(x.v) ? '' : x.v));
+      const name = REVIEW.file;
+      importSheets([XLSX.utils.aoa_to_sheet(aoa)], name, 'pdf');
+      REVIEW = null;
+    } catch (err) { alert('مقدرتش أحفظ:\n' + err.message); }
+  });
+}
+
 const fileEl = document.getElementById('file');
 fileEl.onchange = async () => {
   const f = fileEl.files[0]; fileEl.value = '';
   if (!f) return;
   toast('بيقرا الملف…', 10000);
-  try { await importBuffer(await f.arrayBuffer(), f.name); }
+  try {
+    if (/pdf$|^image\//i.test(f.type) || /\.(pdf|png|jpe?g|webp)$/i.test(f.name)) await importScan(f);
+    else await importBuffer(await f.arrayBuffer(), f.name);
+  }
   catch (e) { toast(''); alert('مقدرتش أقرا الملف:\n' + e.message); }
 };
 
@@ -642,23 +912,31 @@ function renderSettings(){
   const info = k => {
     const d = DATA && DATA[k];
     return `<div class="box"><h3>${KIND[k]} Concrete</h3>${d ? `
-      <div class="kv"><span>المصدر</span><b>${d.src === 'excel' ? 'ملف Excel من الموبايل' : 'الخلطات الأساسية'}</b></div>
+      <div class="kv"><span>المصدر</span><b>${d.src === 'bundle' ? 'الخلطات الأساسية' : d.src === 'pdf' ? 'PDF من الموبايل' : 'ملف Excel من الموبايل'}</b></div>
       <div class="kv"><span>الملف</span><b class="num">${esc(d.file)}</b></div>
       <div class="kv"><span>التاريخ</span><b class="num">${esc(d.at)}</b></div>
       <div class="kv"><span>عدد الخلطات</span><b class="num">${d.mixes.length}</b></div>` : '<p>مفيش خلطات لسه.</p>'}</div>`;
   };
-  const imported = DATA && Object.keys(KIND).some(k => DATA[k] && DATA[k].src === 'excel');
+  const imported = DATA && Object.keys(KIND).some(k => DATA[k] && DATA[k].src !== 'bundle');
   detEl.innerHTML = `<div class="set">
     <button class="back" id="back">→ رجوع</button>
     <h2>الإعدادات</h2>
     ${info('nuclear')}${info('regular')}
-    <div class="box"><h3>تحديث الخلطات من Excel</h3>
-      <p>اختار ملف الكتالوج الجديد (Nuclear أو Regular). التطبيق بيعرف نوعه لوحده وبيحدّث الخلطات بتاعته بس.</p>
-      <button class="btn" id="setImport">Import ملف Excel</button>
+    <div class="box"><h3>تحديث الخلطات من Excel أو PDF</h3>
+      <p>اختار ملف الكتالوج الجديد (Nuclear أو Regular). التطبيق بيعرف نوعه لوحده وبيحدّث الخلطات بتاعته بس.<br>
+        الـ PDF أو الصورة بيتقروا خانة خانة (محتاج نت)، وبعدها بتراجع الأرقام قبل الحفظ.</p>
+      <button class="btn" id="setImport">Import ملف Excel / PDF</button>
       ${imported && BUNDLE ? '<button class="btn ghost" id="setReset">رجوع للخلطات الأساسية</button>' : ''}
     </div></div>`;
 }
 function route(){
+  if (location.hash === '#review') {
+    if (!REVIEW) return go('');
+    renderReview();
+    listEl.classList.add('hidden'); detEl.classList.remove('hidden');
+    window.scrollTo(0, 0);
+    return;
+  }
   if (location.hash === '#settings') {
     renderSettings();
     listEl.classList.add('hidden'); detEl.classList.remove('hidden');
@@ -678,6 +956,7 @@ function route(){
 window.addEventListener('hashchange', route);
 document.getElementById('gearBtn').onclick = () => { if (location.hash !== '#settings') location.hash = 'settings'; };
 let loading = true;
+wireReview();
 setData(store.get('data', null));
 route();
 syncBundle().finally(() => { loading = false; if (!DATA) route(); });
