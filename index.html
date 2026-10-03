@@ -878,9 +878,13 @@ detEl.addEventListener('keydown', e => {
 
 function share(){
   const m = current(); if (!m) return;
-  const lines = [`خلطة ${m.kind === 'regular' ? m.name : m.card + ' — ' + m.cls} — ${Number(qty) || 0} م³`];
-  rows(m).forEach(x => lines.push(`${x.ar.replace(/<[^>]+>/g, '')}${x.adm ? ' ' + x.en : ''}: ` +
-    (x.kg != null ? `${lit(x.t)} لتر` : `${kg(x.t)} كجم`)));
+  // English only: mixed Arabic/English lines get reordered in chat apps
+  const en = x => x.adm ? x.en
+    : /cement/i.test(x.en) ? 'Cement ' + (m.kind === 'regular' ? m.ctype : /lll|iii/i.test(x.en) ? 'CEM III/A' : 'CEM I SR3')
+    : /total water/i.test(x.en) ? 'Water'
+    : x.en.replace(/\(\s*/g, '(').replace(/\s*\)/g, ')').replace(/\s+/g, ' ').trim();
+  const lines = [`Mix ${m.kind === 'regular' ? m.name : m.card + ' | ' + m.cls} | ${Number(qty) || 0} m3`];
+  rows(m).forEach(x => lines.push(`${en(x)}: ` + (x.kg != null ? `${lit(x.t)} L` : `${kg(x.t)} kg`)));
   const text = lines.join('\n');
   if (navigator.share) { navigator.share({ text }).catch(() => {}); return; }
   copy(text);
