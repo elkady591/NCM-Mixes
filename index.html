@@ -32,7 +32,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 .top{position:sticky;top:0;z-index:5;background:var(--bg);padding:12px 0 8px;border-bottom:1px solid var(--line)}
 .title{display:flex;align-items:center;gap:8px;margin-bottom:8px}
 .title h1{font-size:19px;margin:0;direction:ltr;display:flex;align-items:center;gap:7px}
-.title h1 img{height:22px;width:auto;display:block}
+.title h1 img{height:34px;width:auto;display:block}
 .title small{color:var(--muted);font-size:12px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .gear{flex:none;width:40px;height:40px;display:grid;place-items:center;border:0;background:none;color:var(--muted);border-radius:10px;padding:0}
 .gear:active{background:var(--chip)}
@@ -751,7 +751,6 @@ function applyTab(){
   CLASSES = [...new Set(SORTED.map(m => m.cls))].sort((a, b) =>
     a[0].localeCompare(b[0]) || parseFloat(a.slice(1)) - parseFloat(b.slice(1)));
   if (!CLASSES.includes(clsFilter)) clsFilter = '';
-  document.getElementById('built').textContent = DATA ? `${SORTED.length} ${L('خلطة')}` : '';
   qEl.placeholder = L(tab === 'regular' ? 'الرتبة… 25 / 300 / B25' : 'رقم الخلطة… 011 / 085 / 2018');
   renderChips();
 }
@@ -833,7 +832,7 @@ function renderList(){
   const { list, best, other } = results(), more = other && other.list.length;
   const grid = (items, top) => `<div class="grid">${items.map(m => tile(m, m === top)).join('')}</div>`;
   let h = needPwd ? lockCard() : '';
-  h += `<div class="sec">${L('كل الخلطات')}</div>${tabsHtml()}`;
+  h += `<div class="sec">${L('كل الخلطات')} · ${SORTED.length} ${L('خلطة')}</div>${tabsHtml()}`;
   if (other) {
     // Searching: each catalog's matches under its own name
     if (list.length) h += `<div class="sec">${KIND[tab]} Concrete (${list.length})</div>${grid(list, best)}`;
