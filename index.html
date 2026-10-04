@@ -31,7 +31,8 @@ button{font:inherit;color:inherit;cursor:pointer}
 /* top bar */
 .top{position:sticky;top:0;z-index:5;background:var(--bg);padding:12px 0 8px;border-bottom:1px solid var(--line)}
 .title{display:flex;align-items:center;gap:8px;margin-bottom:8px}
-.title h1{font-size:19px;margin:0;direction:ltr}
+.title h1{font-size:19px;margin:0;direction:ltr;display:flex;align-items:center;gap:7px}
+.title h1 img{height:22px;width:auto;display:block}
 .title small{color:var(--muted);font-size:12px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .gear{flex:none;width:40px;height:40px;display:grid;place-items:center;border:0;background:none;color:var(--muted);border-radius:10px;padding:0}
 .gear:active{background:var(--chip)}
@@ -133,7 +134,7 @@ details.box[open] summary{margin-bottom:8px}
 </head>
 <body>
 <div class="top"><div class="wrap">
-  <div class="title"><h1>NCM Mixes</h1><small id="built"></small>
+  <div class="title"><h1><img src="logo.png" alt="NCM">Mixes</h1><small id="built"></small>
     <button class="gear lang" id="langBtn"></button>
     <button class="gear" id="gearBtn" aria-label="Settings"><svg viewBox="0 0 24 24" width="22" height="22" fill="none"
       stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/>

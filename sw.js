@@ -1,6 +1,6 @@
 // Bump VERSION on every change so phones pick up the new files.
-const VERSION = 'ncm-mixes-v12';
-const FILES = ['./', 'index.html', 'manifest.json', 'xlsx.full.min.js', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png'];
+const VERSION = 'ncm-mixes-v13';
+const FILES = ['./', 'index.html', 'manifest.json', 'xlsx.full.min.js', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'logo.png'];
 
 self.addEventListener('install', e => {
   // cache: 'reload' skips the browser's HTTP cache so a new version never stores old files
