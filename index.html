@@ -740,10 +740,13 @@ function setData(d){
   document.getElementById('searchBox').classList.toggle('hidden', !d);
   applyTab();
 }
-function applyTab(){
-  const list = MIX.filter(m => m.kind === tab);
-  SORTED = tab === 'regular' ? list.sort((a, b) => (a.num - b.num) || (a.i - b.i))
+function sortedOf(kind){
+  const list = MIX.filter(m => m.kind === kind);
+  return kind === 'regular' ? list.sort((a, b) => (a.num - b.num) || (a.i - b.i))
     : list.sort((a, b) => (a.card.includes('/') - b.card.includes('/')) || (a.num - b.num) || (a.i - b.i));
+}
+function applyTab(){
+  SORTED = sortedOf(tab);
   CLASSES = [...new Set(SORTED.map(m => m.cls))].sort((a, b) =>
     a[0].localeCompare(b[0]) || parseFloat(a.slice(1)) - parseFloat(b.slice(1)));
   if (!CLASSES.includes(clsFilter)) clsFilter = '';
@@ -775,11 +778,16 @@ clsEl.onclick = e => {
 };
 
 /* ---------- search ---------- */
+// A typed search also looks in the other catalog, so the mix is found whichever tab is open
 function results(){
   const q = norm(qEl.value).replace(/\s+/g, '');
-  let list = clsFilter ? SORTED.filter(m => m.cls === clsFilter) : SORTED;
-  if (!q) return { list, best: null };
-  const reg = tab === 'regular';
+  const list = clsFilter ? SORTED.filter(m => m.cls === clsFilter) : SORTED;
+  if (!q) return { list, best: null, other: null };
+  const kind = tab === 'regular' ? 'nuclear' : 'regular';
+  return { ...search(tab, list, q), other: { kind, ...search(kind, sortedOf(kind), q) } };
+}
+function search(kind, list, q){
+  const reg = kind === 'regular';
   if (/^[A-Z]/.test(q)) return { best: null, list: list.filter(m =>
     reg ? m.find.includes(q) : m.cls.startsWith(q) || m.slump.startsWith(q)) };
   const qn = /^\d+(\.\d+)?$/.test(q) ? parseFloat(q) : NaN;
@@ -821,12 +829,20 @@ function renderList(){
       <button class="btn" id="impFirst">${L('اختيار ملف Excel')}</button></div>`;
     return;
   }
-  const { list, best } = results();
+  const { list, best, other } = results(), more = other && other.list.length;
+  const grid = (items, top) => `<div class="grid">${items.map(m => tile(m, m === top)).join('')}</div>`;
   let h = needPwd ? lockCard() : '';
   h += `<div class="sec">${L('كل الخلطات')}</div>${tabsHtml()}`;
-  if (qEl.value || clsFilter) h += `<div class="sec">${L('النتائج')} (${list.length})</div>`;
-  h += list.length ? `<div class="grid">${list.map(m => tile(m, m === best)).join('')}</div>`
-    : `<div class="empty">${SORTED.length ? L('مفيش خلطة بالرقم ده') : `${L('مفيش خلطات لسه — اعمل Import من الإعدادات')} (${KIND[tab]})`}</div>`;
+  if (other) {
+    // Searching: each catalog's matches under its own name
+    if (list.length) h += `<div class="sec">${KIND[tab]} Concrete (${list.length})</div>${grid(list, best)}`;
+    if (more) h += `<div class="sec">${KIND[other.kind]} Concrete (${other.list.length})</div>${grid(other.list, list.length ? null : other.best)}`;
+    if (!list.length && !more) h += `<div class="empty">${L('مفيش خلطة بالرقم ده')}</div>`;
+  } else {
+    if (clsFilter) h += `<div class="sec">${L('النتائج')} (${list.length})</div>`;
+    h += list.length ? grid(list, best)
+      : `<div class="empty">${SORTED.length ? L('مفيش خلطة بالرقم ده') : `${L('مفيش خلطات لسه — اعمل Import من الإعدادات')} (${KIND[tab]})`}</div>`;
+  }
   listEl.innerHTML = h;
 }
 listEl.onclick = e => {
@@ -843,7 +859,7 @@ qEl.addEventListener('input', () => { if (location.hash) go(''); else renderList
 qEl.addEventListener('keydown', e => {
   if (e.key !== 'Enter') return;
   e.preventDefault(); qEl.blur();
-  const r = results(), m = r.best || r.list[0];
+  const r = results(), m = r.best || r.list[0] || (r.other && (r.other.best || r.other.list[0]));
   if (m) go(m.key);
 });
 
