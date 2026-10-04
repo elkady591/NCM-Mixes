@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ar" dir="rtl">
+<html lang="en" dir="ltr">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -35,6 +35,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 .title small{color:var(--muted);font-size:12px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .gear{flex:none;width:40px;height:40px;display:grid;place-items:center;border:0;background:none;color:var(--muted);border-radius:10px;padding:0}
 .gear:active{background:var(--chip)}
+.gear.lang{font-weight:700;font-size:14px;color:var(--accent)}
 .lock{background:var(--card);border:1.5px solid var(--accent);border-radius:16px;padding:16px;margin-top:14px}
 .lock h3{margin:0 0 4px;font-size:16px}
 .lock p{margin:0 0 10px;color:var(--muted);font-size:13px}
@@ -54,9 +55,11 @@ button{font:inherit;color:inherit;cursor:pointer}
 .kv span{color:var(--muted)}
 .search{display:flex;gap:6px}
 .search input{flex:1;min-width:0;font:inherit;font-size:20px;padding:10px 14px;border-radius:12px;
-  border:1.5px solid var(--line);background:var(--card);color:var(--ink);outline:none;direction:ltr;text-align:right}
+  border:1.5px solid var(--line);background:var(--card);color:var(--ink);outline:none;direction:ltr;text-align:left}
+[dir=rtl] .search input{text-align:right}
 .search input:focus{border-color:var(--accent)}
-.search input::placeholder{direction:rtl;color:var(--muted);font-size:16px}
+.search input::placeholder{color:var(--muted);font-size:16px}
+[dir=rtl] .search input::placeholder{direction:rtl}
 .kbd{flex:none;width:52px;border-radius:12px;border:1.5px solid var(--line);background:var(--card);font-size:13px;font-weight:600}
 .chips{display:flex;gap:6px;overflow-x:auto;padding:8px 0 2px;scrollbar-width:none}
 .chips::-webkit-scrollbar{display:none}
@@ -97,10 +100,10 @@ button{font:inherit;color:inherit;cursor:pointer}
 .step{width:48px;height:48px;border-radius:10px;border:0;background:var(--chip);font-size:24px;font-weight:700}
 
 table{width:100%;border-collapse:collapse;background:var(--card);border-radius:14px;overflow:hidden;border:1px solid var(--line)}
-th,td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:right;vertical-align:middle}
+th,td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:start;vertical-align:middle}
 tbody tr:last-child td{border-bottom:0}
 th{font-size:12px;color:var(--muted);font-weight:600;background:var(--chip)}
-td.v,th.v{text-align:left;white-space:nowrap}
+td.v,th.v{text-align:end;white-space:nowrap}
 td .en{display:block;font-size:11px;color:var(--muted)}
 td.tot{font-weight:800;font-size:17px}
 td .t{display:block;font-size:12px;font-weight:600;color:var(--accent)}
@@ -131,12 +134,13 @@ details.box[open] summary{margin-bottom:8px}
 <body>
 <div class="top"><div class="wrap">
   <div class="title"><h1>NCM Mixes</h1><small id="built"></small>
-    <button class="gear" id="gearBtn" aria-label="الإعدادات"><svg viewBox="0 0 24 24" width="22" height="22" fill="none"
+    <button class="gear lang" id="langBtn"></button>
+    <button class="gear" id="gearBtn" aria-label="Settings"><svg viewBox="0 0 24 24" width="22" height="22" fill="none"
       stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/>
       <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button></div>
   <div class="search" id="searchBox">
-    <input id="q" type="search" inputmode="numeric" autocomplete="off" placeholder="رقم الخلطة… 011 / 085 / 2018">
-    <button class="kbd" id="kbd" title="تبديل الكيبورد">ABC</button>
+    <input id="q" type="search" inputmode="numeric" autocomplete="off" placeholder="">
+    <button class="kbd" id="kbd" title="Keyboard">ABC</button>
   </div>
   <div class="chips" id="cls"></div>
 </div></div>
@@ -161,6 +165,58 @@ const store = {
   get(k, d){ try { const v = localStorage.getItem('ncmmix.' + k); return v == null ? d : JSON.parse(v); } catch(e){ return d; } },
   set(k, v){ try { localStorage.setItem('ncmmix.' + k, JSON.stringify(v)); return true; } catch(e){ return false; } }
 };
+/* ---------- language: English by default, Arabic strings are the keys ---------- */
+const EN = {
+  'الإعدادات': 'Settings', 'خلطة': 'mixes', 'عمود': 'Column', 'الكل': 'All', 'كل الخلطات': 'All mixes', 'النتائج': 'Results',
+  'رقم الخلطة… 011 / 085 / 2018': 'Mix no… 011 / 085 / 2018', 'الرتبة… 25 / 300 / B25': 'Class… 25 / 300 / B25',
+  'مفيش خلطة بالرقم ده': 'No mix with that number', 'مفيش خلطات لسه — اعمل Import من الإعدادات': 'No mixes yet — import them from Settings',
+  'بيحمّل…': 'Loading…', 'أهلاً': 'Welcome', 'اختيار ملف Excel': 'Choose Excel file',
+  'مقدرتش أجيب الخلطات — اتأكد إن النت شغال وافتح تاني، أو اختار ملف الإكسيل من الموبايل.': "Couldn't load the mixes. Check the internet and open again, or choose the Excel file from this phone.",
+  '→ كل الخلطات': '← All mixes', '→ رجوع': '← Back', '→ إلغاء': '← Cancel', 'إلغاء': 'Cancel',
+  'الكمية م³': 'Quantity m³', 'الخامة': 'Material', 'للمتر (كجم)': 'Per m³ (kg)', 'الإجمالي (كجم)': 'Total (kg)',
+  'مشاركة / نسخ': 'Share / Copy', 'خلطة تانية': 'Another mix', 'إضافة': 'Admixture', 'لتر': 'L', 'كجم': 'kg', 'طن': 't',
+  '7 يوم': '7 days', '28 يوم': '28 days', '28 يوم (MPa)': '28 days (MPa)', 'اتنسخ': 'Copied',
+  'اكتب الباسورد': 'Enter the password', 'مرة واحدة بس على الموبايل ده.': 'Only once on this phone.', 'فتح': 'Open',
+  'فيه تحديث للخلطات': 'The mixes have an update', 'اكتب الباسورد علشان تنزل الخلطات الجديدة.': 'Enter the password to get the new mixes.',
+  'الباسورد غلط': 'Wrong password', 'حصلت مشكلة في قراءة البيانات': "Couldn't read the data", 'بيفتح…': 'Opening…', 'بيرجع…': 'Restoring…',
+  'تم': 'Done', 'الخلطات الأساسية': 'Built-in mixes', 'اتحدثت الخلطات': 'Mixes updated', 'مفيش تغيير': 'No change', 'اتحدث': 'Updated',
+  'جديدة': 'new', 'اتعدلت': 'changed', 'اتشالت': 'removed',
+  'المصدر': 'Source', 'الملف': 'File', 'التاريخ': 'Date', 'عدد الخلطات': 'Mixes', 'مفيش خلطات لسه.': 'No mixes yet.',
+  'PDF من الموبايل': 'PDF from this phone', 'ملف Excel من الموبايل': 'Excel file from this phone',
+  'تحديث الخلطات من Excel أو PDF': 'Update mixes from Excel or PDF', 'Import ملف Excel / PDF': 'Import Excel / PDF file',
+  'رجوع للخلطات الأساسية': 'Back to built-in mixes',
+  'اختار ملف الكتالوج الجديد (Nuclear أو Regular). التطبيق بيعرف نوعه لوحده وبيحدّث الخلطات بتاعته بس.': 'Choose the new catalog file (Nuclear or Regular). The app detects which one it is and updates only those mixes.',
+  'الـ PDF أو الصورة بيتقروا خانة خانة (محتاج نت)، وبعدها بتراجع الأرقام قبل الحفظ.': 'A PDF or picture is read cell by cell (needs internet), then you check the numbers before saving.',
+  'بيقرا الملف…': 'Reading the file…', 'بيقرا الجدول…': 'Reading the table…', 'مقدرتش أقرا الملف:': "Couldn't read the file:", 'مقدرتش أحفظ:': "Couldn't save:",
+  'مراجعة قبل الحفظ': 'Check before saving', 'قارن كل رقم بالصورة اللي فوقه وصحّح اللي غلط.': 'Compare each number with the picture above it and fix what is wrong.',
+  'لو خانة حمرا والرقم صح، دوس على صورتها.': 'If a red cell is right, tap its picture.',
+  'خانة باللون الأحمر محتاجة مراجعة': 'red cells need checking', 'مفيش خانات مشكوك فيها': 'No doubtful cells',
+  'عناوين الأعمدة': 'Column headers', 'حفظ الخلطات': 'Save mixes', 'لسه فيه خانات باللون الأحمر. تحفظ برضه؟': 'Some cells are still red. Save anyway?',
+  'شكل الملف مختلف عن كتالوج الخلطات': "This file doesn't look like the mix catalog",
+  'عناوين أعمدة الخامات مش مقروءة (لازم تنتهي بـ kg)': "Material column headers aren't readable (they must end with kg)",
+  'مكتبة الإكسيل ما اتحملتش': "The Excel library didn't load", 'مفيش خلطات في الملف ده': 'No mixes in this file',
+  'مفيش مساحة لحفظ البيانات': 'No space to save the data', 'قراءة الـ PDF محتاجة نت': 'Reading a PDF needs internet',
+  'مقدرتش ألاقي جدول بخطوط واضحة في الملف': "Couldn't find a table with clear lines in the file",
+  'الجدول كبير قوي على القراءة من صورة — استخدم ملف Excel': 'The table is too big to read from a picture — use the Excel file',
+};
+let LANG = store.get('lang', 'en');
+const L = s => LANG === 'ar' ? s : (EN[s] ?? s);
+// English names read better without the catalog's stray spaces
+function enName(x, m){
+  if (x.adm) return x.en;
+  if (/cement/i.test(x.en)) return 'Cement ' + (m.kind === 'regular' ? m.ctype : /lll|iii/i.test(x.en) ? 'CEM III/A' : 'CEM I SR3');
+  if (/total water/i.test(x.en)) return 'Water';
+  return x.en.replace(/\(\s*/g, '(').replace(/\s*\)/g, ')').replace(/\s+/g, ' ').trim();
+}
+const nameCell = x => LANG === 'ar' ? `${x.ar}<span class="en">${esc(x.en)}</span>`
+  : x.adm ? `${esc(x.en)}<span class="en">${x.ar}</span>` : esc(x.nice);
+function applyLang(){
+  document.documentElement.lang = LANG;
+  document.documentElement.dir = LANG === 'ar' ? 'rtl' : 'ltr';
+  document.getElementById('langBtn').textContent = LANG === 'ar' ? 'EN' : 'ع';
+  document.getElementById('gearBtn').setAttribute('aria-label', L('الإعدادات'));
+}
+
 const fmt = (v, dec) => v == null ? '—' : Number(v).toLocaleString('en-US', {maximumFractionDigits: dec, minimumFractionDigits: 0});
 const kg = v => fmt(v, v >= 100 ? 0 : 1);
 
@@ -204,7 +260,7 @@ function parseSheet(ws){
         rWres = rowOf(/^Water Resistance/i), rExp = rowOf(/^Exposure/i), rWb = rowOf(/^W\/Binder/i),
         rAdm1 = rowOf(/^Admixture 1/i), rAdm2 = rowOf(/^Admixture 2/i), rDen = rowOf(/^Density/i),
         r7 = rowOf(/^Average 7/i), r28 = rowOf(/^Average 28/i), r56 = rowOf(/^Average 56/i);
-  if (rWb < 0 || rAdm1 < 0) throw new Error('شكل الملف مختلف عن كتالوج الخلطات');
+  if (rWb < 0 || rAdm1 < 0) throw new Error(L('شكل الملف مختلف عن كتالوج الخلطات'));
   const matRows = labels.filter(([r]) => r > rWb && r < rAdm1);
   // A card number merged over several columns belongs to each of them
   const origin = {};
@@ -223,7 +279,7 @@ function parseSheet(ws){
       if (b || v) adm.push({ b, v });
     });
     mixes.push({
-      card: txt(cell(rCard, origin[c] ?? c)) || ('عمود ' + XLSX.utils.encode_col(c)),
+      card: txt(cell(rCard, origin[c] ?? c)) || (L('عمود') + ' ' + XLSX.utils.encode_col(c)),
       cls: txt(at(rCls, c)), minSt: num(at(rMin, c)), slump: txt(at(rSlump, c)), wres: txt(at(rWres, c)),
       exp: txt(at(rExp, c)), wb: num(at(rWb, c)), mats, adm,
       dens: num(at(rDen, c)), s7: num(at(r7, c)), s28: num(at(r28, c)), s56: num(at(r56, c))
@@ -272,7 +328,7 @@ function parseRegular(ws){
   const cType = colOf(/^Cement type/i), cWc = colOf(/^W\/C/i), cAdd = colOf(/^Add/i), cDate = colOf(/^Date/i),
         c7 = colOf(/^7/), c28 = colOf(/^28/);
   const matCols = head.filter(([, t]) => /kg\s*$/i.test(t));
-  if (!matCols.length) throw new Error('عناوين أعمدة الخامات مش مقروءة (لازم تنتهي بـ kg)');
+  if (!matCols.length) throw new Error(L('عناوين أعمدة الخامات مش مقروءة (لازم تنتهي بـ kg)'));
   const at = (r, c) => c < 0 ? null : cell(r, c);
   const mixes = [];
   for (let r = hr + 1; r <= R.e.r; r++) {
@@ -291,7 +347,7 @@ function loadXLSX(){
   if (window.XLSX) return Promise.resolve();
   return new Promise((ok, fail) => {
     const s = document.createElement('script');
-    s.src = 'xlsx.full.min.js'; s.onload = ok; s.onerror = () => fail(new Error('مكتبة الإكسيل ما اتحملتش'));
+    s.src = 'xlsx.full.min.js'; s.onload = ok; s.onerror = () => fail(new Error(L('مكتبة الإكسيل ما اتحملتش')));
     document.head.appendChild(s);
   });
 }
@@ -317,20 +373,20 @@ function importSheets(sheets, name, src){
     if ((mixes = parseSheet(ws)).length) { kind = 'nuclear'; break; }
     if ((mixes = parseRegular(ws)).length) { kind = 'regular'; break; }
   }
-  if (!kind) throw new Error('مفيش خلطات في الملف ده');
+  if (!kind) throw new Error(L('مفيش خلطات في الملف ده'));
   const d = new Date(), pad = n => String(n).padStart(2, '0');
   const set = { src, file: name, at: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`, mixes };
   const ch = diff(DATA && DATA[kind] ? DATA[kind].mixes : [], mixes);
   saveData({ ...(DATA || {}), ver: d.toISOString(), [kind]: set });
   tab = kind; store.set('tab', tab); applyTab();
   go('');
-  const label = `${KIND[kind]} — ${mixes.length} خلطة`;
-  if (!ch.added && !ch.changed && !ch.removed) toast(`مفيش تغيير · ${label}`, 2500);
-  else toast([`اتحدث · ${label}`, ch.added && `${ch.added} جديدة`, ch.changed && `${ch.changed} اتعدلت`,
-              ch.removed && `${ch.removed} اتشالت`].filter(Boolean).join(' · '), 3500);
+  const label = `${KIND[kind]} — ${mixes.length} ${L('خلطة')}`;
+  if (!ch.added && !ch.changed && !ch.removed) toast(`${L('مفيش تغيير')} · ${label}`, 2500);
+  else toast([`${L('اتحدث')} · ${label}`, ch.added && `${ch.added} ${L('جديدة')}`, ch.changed && `${ch.changed} ${L('اتعدلت')}`,
+              ch.removed && `${ch.removed} ${L('اتشالت')}`].filter(Boolean).join(' · '), 3500);
 }
 function saveData(data){
-  if (!store.set('data', data)) throw new Error('مفيش مساحة لحفظ البيانات');
+  if (!store.set('data', data)) throw new Error(L('مفيش مساحة لحفظ البيانات'));
   setData(data);
 }
 // Built-in data arrived: stay quiet when nothing actually changed
@@ -340,7 +396,7 @@ function useBundle(data, asked){
   saveData(data);
   if (same && !asked) { if (!current() && location.hash !== '#settings') route(); return; }
   go('');
-  toast((first ? 'تم — ' : asked ? 'الخلطات الأساسية — ' : 'اتحدثت الخلطات — ') + ['nuclear', 'regular'].filter(k => data[k])
+  toast(L(first ? 'تم' : asked ? 'الخلطات الأساسية' : 'اتحدثت الخلطات') + ' — ' + ['nuclear', 'regular'].filter(k => data[k])
     .map(k => `${data[k].mixes.length} ${KIND[k]}`).join(' · '), 3000);
 }
 
@@ -392,16 +448,16 @@ async function unlock(pwd, asked){
   }
 }
 function lockCard(){
-  return `<div class="lock"><h3>${DATA ? 'فيه تحديث للخلطات' : 'اكتب الباسورد'}</h3>
-    <p>${DATA ? 'اكتب الباسورد علشان تنزل الخلطات الجديدة.' : 'مرة واحدة بس على الموبايل ده.'}</p>
+  return `<div class="lock"><h3>${L(DATA ? 'فيه تحديث للخلطات' : 'اكتب الباسورد')}</h3>
+    <p>${L(DATA ? 'اكتب الباسورد علشان تنزل الخلطات الجديدة.' : 'مرة واحدة بس على الموبايل ده.')}</p>
     <form id="pwdForm"><input id="pwd" type="password" autocomplete="current-password" placeholder="Password">
-    <button class="btn" type="submit">فتح</button></form>${pwdErr ? `<div class="err">${pwdErr}</div>` : ''}</div>`;
+    <button class="btn" type="submit">${L('فتح')}</button></form>${pwdErr ? `<div class="err">${L(pwdErr)}</div>` : ''}</div>`;
 }
 document.addEventListener('submit', e => {
   if (e.target.id !== 'pwdForm') return;
   e.preventDefault();
   const v = document.getElementById('pwd').value;
-  if (v) { toast('بيفتح…', 10000); unlock(v); }
+  if (v) { toast(L('بيفتح…'), 10000); unlock(v); }
 });
 
 /* ---------- PDF / picture import: find the table lines, read every cell on its own, then the user checks ---------- */
@@ -409,7 +465,7 @@ const PDFJS = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';
 const TESS = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
 const loadScript = src => new Promise((ok, fail) => {
   const s = document.createElement('script');
-  s.src = src; s.onload = ok; s.onerror = () => fail(new Error('قراءة الـ PDF محتاجة نت'));
+  s.src = src; s.onload = ok; s.onerror = () => fail(new Error(L('قراءة الـ PDF محتاجة نت')));
   document.head.appendChild(s);
 });
 async function pdfPages(buf){
@@ -507,9 +563,9 @@ async function importScan(file){
     const doc = await pdfPages(await file.arrayBuffer());
     for (let n = 1; n <= doc.count && !grid; n++) { canvas = await doc.page(n); grid = findGrid(canvas); }
   } else { canvas = await pictureCanvas(file); grid = findGrid(canvas); }
-  if (!grid) throw new Error('مقدرتش ألاقي جدول بخطوط واضحة في الملف');
+  if (!grid) throw new Error(L('مقدرتش ألاقي جدول بخطوط واضحة في الملف'));
   const R = grid.ys.length - 1, C = grid.xs.length - 1;
-  if (R * C > 500) throw new Error('الجدول كبير قوي على القراءة من صورة — استخدم ملف Excel');
+  if (R * C > 500) throw new Error(L('الجدول كبير قوي على القراءة من صورة — استخدم ملف Excel'));
   if (!window.Tesseract) await loadScript(TESS);
   const worker = await Tesseract.createWorker('eng');
   const inset = Math.max(3, Math.round(grid.rowH * 0.14));
@@ -528,7 +584,7 @@ async function importScan(file){
     for (let r = 0; r < R; r++) {
       const row = [];
       for (let c = 0; c < C; c++) {
-        toast(`بيقرا الجدول… ${Math.round((r * C + c) * 100 / (R * C))}%`, 20000);
+        toast(`${L('بيقرا الجدول…')} ${Math.round((r * C + c) * 100 / (R * C))}%`, 20000);
         const head = r === 0, name = head ? '' : regHead(rows[0][c].v);
         row.push(await read(r, c, !head && c > 0 && !/type$|^date|^class$/i.test(name), head));
       }
@@ -587,19 +643,19 @@ function suspect(head, x, row, heads){
 function renderReview(){
   const { rows } = REVIEW, heads = rows[0].map(x => x.v);
   const field = (r, c) => { const x = rows[r][c], bad = r > 0 && suspect(heads[c], x, rows[r], heads);
-    return `<div class="rv${bad ? ' bad' : ''}"><span>${r ? esc(heads[c]) || 'عمود ' + (c + 1) : 'عمود ' + (c + 1)}</span>
+    return `<div class="rv${bad ? ' bad' : ''}"><span>${r ? esc(heads[c]) || L('عمود') + ' ' + (c + 1) : L('عمود') + ' ' + (c + 1)}</span>
       <img src="${x.img}" alt=""><input data-r="${r}" data-c="${c}" value="${esc(x.v)}" autocomplete="off" autocapitalize="off" spellcheck="false"></div>`; };
   const bad = rows.slice(1).reduce((n, row) => n + row.filter((x, c) => suspect(heads[c], x, row, heads)).length, 0);
   detEl.innerHTML = `<div class="set">
-    <button class="back" id="rvCancel">→ إلغاء</button>
-    <h2>مراجعة قبل الحفظ</h2>
-    <div class="box"><p>قارن كل رقم بالصورة اللي فوقه وصحّح اللي غلط.<br>
-      لو خانة حمرا والرقم صح، دوس على صورتها.<br>
-      <b class="${bad ? 'err' : ''}" id="rvCount">${bad ? bad + ' خانة باللون الأحمر محتاجة مراجعة' : 'مفيش خانات مشكوك فيها'}</b></p></div>
-    <details class="box"><summary>عناوين الأعمدة</summary><div class="rvg">${rows[0].map((x, c) => field(0, c)).join('')}</div></details>
+    <button class="back" id="rvCancel">${L('→ إلغاء')}</button>
+    <h2>${L('مراجعة قبل الحفظ')}</h2>
+    <div class="box"><p>${L('قارن كل رقم بالصورة اللي فوقه وصحّح اللي غلط.')}<br>
+      ${L('لو خانة حمرا والرقم صح، دوس على صورتها.')}<br>
+      <b class="${bad ? 'err' : ''}" id="rvCount">${bad ? bad + ' ' + L('خانة باللون الأحمر محتاجة مراجعة') : L('مفيش خانات مشكوك فيها')}</b></p></div>
+    <details class="box"><summary>${L('عناوين الأعمدة')}</summary><div class="rvg">${rows[0].map((x, c) => field(0, c)).join('')}</div></details>
     ${rows.slice(1).map((row, i) => `<div class="box"><h3 class="num">${i + 1} — ${esc(row[0].v)}</h3>
       <div class="rvg">${row.map((x, c) => field(i + 1, c)).join('')}</div></div>`).join('')}
-    <div class="actions"><button class="btn" id="rvSave">حفظ الخلطات</button><button class="btn ghost" id="rvCancel2">إلغاء</button></div></div>`;
+    <div class="actions"><button class="btn" id="rvSave">${L('حفظ الخلطات')}</button><button class="btn ghost" id="rvCancel2">${L('إلغاء')}</button></div></div>`;
 }
 function wireReview(){
   detEl.addEventListener('input', e => {
@@ -613,7 +669,7 @@ function wireReview(){
     detEl.querySelectorAll(`input[data-r="${r}"]`).forEach(inp =>
       inp.parentNode.classList.toggle('bad', suspect(heads[+inp.dataset.c], rows[r][+inp.dataset.c], rows[r], heads)));
     const bad = detEl.querySelectorAll('.rv.bad').length, el = document.getElementById('rvCount');
-    el.textContent = bad ? bad + ' خانة باللون الأحمر محتاجة مراجعة' : 'مفيش خانات مشكوك فيها';
+    el.textContent = bad ? bad + ' ' + L('خانة باللون الأحمر محتاجة مراجعة') : L('مفيش خانات مشكوك فيها');
     el.className = bad ? 'err' : '';
   };
   detEl.addEventListener('click', async e => {
@@ -623,14 +679,14 @@ function wireReview(){
     if (e.target.id === 'rvCancel' || e.target.id === 'rvCancel2') { REVIEW = null; return go(''); }
     if (e.target.id !== 'rvSave') return;
     const bad = detEl.querySelectorAll('.rv.bad').length;
-    if (bad && !confirm(`لسه فيه ${bad} خانة باللون الأحمر. تحفظ برضه؟`)) return;
+    if (bad && !confirm(`${L('لسه فيه خانات باللون الأحمر. تحفظ برضه؟')} (${bad})`)) return;
     try {
       await loadXLSX();
       const aoa = REVIEW.rows.map((row, r) => row.map(x => r && /^-?\d+(\.\d+)?$/.test(x.v) ? parseFloat(x.v) : /^-+$/.test(x.v) ? '' : x.v));
       const name = REVIEW.file;
       importSheets([XLSX.utils.aoa_to_sheet(aoa)], name, 'pdf');
       REVIEW = null;
-    } catch (err) { alert('مقدرتش أحفظ:\n' + err.message); }
+    } catch (err) { alert(L('مقدرتش أحفظ:') + '\n' + err.message); }
   });
 }
 
@@ -638,12 +694,12 @@ const fileEl = document.getElementById('file');
 fileEl.onchange = async () => {
   const f = fileEl.files[0]; fileEl.value = '';
   if (!f) return;
-  toast('بيقرا الملف…', 10000);
+  toast(L('بيقرا الملف…'), 10000);
   try {
     if (/pdf$|^image\//i.test(f.type) || /\.(pdf|png|jpe?g|webp)$/i.test(f.name)) await importScan(f);
     else await importBuffer(await f.arrayBuffer(), f.name);
   }
-  catch (e) { toast(''); alert('مقدرتش أقرا الملف:\n' + e.message); }
+  catch (e) { toast(''); alert(L('مقدرتش أقرا الملف:') + '\n' + e.message); }
 };
 
 /* ---------- data ---------- */
@@ -691,8 +747,8 @@ function applyTab(){
   CLASSES = [...new Set(SORTED.map(m => m.cls))].sort((a, b) =>
     a[0].localeCompare(b[0]) || parseFloat(a.slice(1)) - parseFloat(b.slice(1)));
   if (!CLASSES.includes(clsFilter)) clsFilter = '';
-  document.getElementById('built').textContent = DATA ? `${SORTED.length} خلطة` : '';
-  qEl.placeholder = tab === 'regular' ? 'الرتبة… 25 / 300 / B25' : 'رقم الخلطة… 011 / 085 / 2018';
+  document.getElementById('built').textContent = DATA ? `${SORTED.length} ${L('خلطة')}` : '';
+  qEl.placeholder = L(tab === 'regular' ? 'الرتبة… 25 / 300 / B25' : 'رقم الخلطة… 011 / 085 / 2018');
   renderChips();
 }
 const byKey = k => MIX.find(m => m.key === k);
@@ -711,7 +767,7 @@ kbdBtn.onclick = () => { setKbd(qEl.getAttribute('inputmode') === 'numeric' ? 't
 const clsEl = document.getElementById('cls');
 function renderChips(){
   clsEl.innerHTML = SORTED.length ? ['', ...CLASSES].map(c =>
-    `<button class="chip${c === clsFilter ? ' on' : ''}" data-c="${esc(c)}">${c || 'الكل'}</button>`).join('') : '';
+    `<button class="chip${c === clsFilter ? ' on' : ''}" data-c="${esc(c)}">${c || L('الكل')}</button>`).join('') : '';
 }
 clsEl.onclick = e => {
   const b = e.target.closest('.chip'); if (!b) return;
@@ -759,18 +815,18 @@ function tabsHtml(){
 const listEl = document.getElementById('list'), detEl = document.getElementById('detail');
 function renderList(){
   if (!DATA) {
-    listEl.innerHTML = needPwd ? lockCard() : BUNDLE === null && loading ? '<div class="empty">بيحمّل…</div>' :
-      `<div class="welcome"><h2>أهلاً</h2>
-      <p>مقدرتش أجيب الخلطات — اتأكد إن النت شغال وافتح تاني،<br>أو اختار ملف الإكسيل من الموبايل.</p>
-      <button class="btn" id="impFirst">اختيار ملف Excel</button></div>`;
+    listEl.innerHTML = needPwd ? lockCard() : BUNDLE === null && loading ? `<div class="empty">${L('بيحمّل…')}</div>` :
+      `<div class="welcome"><h2>${L('أهلاً')}</h2>
+      <p>${L('مقدرتش أجيب الخلطات — اتأكد إن النت شغال وافتح تاني، أو اختار ملف الإكسيل من الموبايل.')}</p>
+      <button class="btn" id="impFirst">${L('اختيار ملف Excel')}</button></div>`;
     return;
   }
   const { list, best } = results();
   let h = needPwd ? lockCard() : '';
-  h += `<div class="sec">كل الخلطات</div>${tabsHtml()}`;
-  if (qEl.value || clsFilter) h += `<div class="sec">النتائج (${list.length})</div>`;
+  h += `<div class="sec">${L('كل الخلطات')}</div>${tabsHtml()}`;
+  if (qEl.value || clsFilter) h += `<div class="sec">${L('النتائج')} (${list.length})</div>`;
   h += list.length ? `<div class="grid">${list.map(m => tile(m, m === best)).join('')}</div>`
-    : `<div class="empty">${SORTED.length ? 'مفيش خلطة بالرقم ده' : `مفيش خلطات ${KIND[tab]} لسه — اعمل Import من الإعدادات`}</div>`;
+    : `<div class="empty">${SORTED.length ? L('مفيش خلطة بالرقم ده') : `${L('مفيش خلطات لسه — اعمل Import من الإعدادات')} (${KIND[tab]})`}</div>`;
   listEl.innerHTML = h;
 }
 listEl.onclick = e => {
@@ -798,9 +854,9 @@ function rows(m){
   // Liquid admixtures are catalogued in kg but dosed in litres: litres = kg ÷ density
   m.adm.forEach((a, i) => {
     const d = density(a.b);
-    r.push({ ar: 'إضافة ' + (i + 1), en: a.b, adm: true, v: d && a.v != null ? a.v / d : a.v, kg: d ? a.v : null });
+    r.push({ ar: L('إضافة') + ' ' + (i + 1), en: a.b, adm: true, v: d && a.v != null ? a.v / d : a.v, kg: d ? a.v : null });
   });
-  r.forEach(x => { x.t = x.v == null ? null : x.v * f; x.tkg = x.kg == null ? null : x.kg * f; });
+  r.forEach(x => { x.t = x.v == null ? null : x.v * f; x.tkg = x.kg == null ? null : x.kg * f; x.nice = enName(x, m); });
   return r;
 }
 // kg per litre; an admixture not listed here stays in kg (Rheoplast CS-1)
@@ -818,38 +874,38 @@ function renderDetail(m){
       <span class="badge">${esc(m.ctype === 'OPC' ? 'CEM I' : m.ctype)}</span></div>
     <div class="facts">
       ${fact('Cement (kg)', m.cem)}${fact('W/C', m.wc == null ? null : fmt(m.wc, 2))}${fact('Cement type', m.ctype)}
-      ${fact('Date of trial', m.date)}${fact('7 يوم', m.s7 == null ? null : fmt(m.s7, 2))}${fact('28 يوم', m.s28 == null ? null : fmt(m.s28, 2))}
+      ${fact('Date of trial', m.date)}${fact(L('7 يوم'), m.s7 == null ? null : fmt(m.s7, 2))}${fact(L('28 يوم'), m.s28 == null ? null : fmt(m.s28, 2))}
       ${fact('Class', m.name, true)}
     </div>` : `
     <div class="head"><h2 class="num">${esc(m.short)}<small>${esc(m.rest)}</small></h2><span class="badge">${esc(m.cls)}</span></div>
     <div class="facts">
       ${fact('Slump / Flow', m.slump)}${fact('W/B', m.wb == null ? null : fmt(m.wb, 2))}${fact('Water Res.', m.wres)}
       ${fact('Density', m.dens == null ? null : fmt(m.dens, 0))}${fact('Min. St. (MPa)', m.minSt == null ? null : fmt(m.minSt, 1))}
-      ${fact('28 يوم (MPa)', m.s28 == null ? null : fmt(m.s28, 1))}${fact('Exposure', m.exp && m.exp !== '-' ? m.exp : null, true)}
+      ${fact(L('28 يوم (MPa)'), m.s28 == null ? null : fmt(m.s28, 1))}${fact('Exposure', m.exp && m.exp !== '-' ? m.exp : null, true)}
     </div>`;
   detEl.innerHTML = `
-    <button class="back" id="back">→ كل الخلطات</button>${head}
+    <button class="back" id="back">${L('→ كل الخلطات')}</button>${head}
     <div class="qty">
       <div class="qrow">
-        <label for="qty">الكمية م³</label>
+        <label for="qty">${L('الكمية م³')}</label>
         <button class="step" data-d="-1">−</button>
         <input id="qty" type="number" inputmode="decimal" min="0" step="0.5" placeholder="0" value="${esc(qty)}">
         <button class="step" data-d="1">+</button>
       </div>
     </div>
     <table>
-      <thead><tr><th>الخامة</th><th class="v">للمتر (كجم)</th><th class="v">الإجمالي (كجم)</th></tr></thead>
+      <thead><tr><th>${L('الخامة')}</th><th class="v">${L('للمتر (كجم)')}</th><th class="v">${L('الإجمالي (كجم)')}</th></tr></thead>
       <tbody id="tb">${tbody(r)}</tbody>
     </table>
-    <div class="actions"><button class="btn" id="share">مشاركة / نسخ</button><button class="btn ghost" id="back2">خلطة تانية</button></div>`;
+    <div class="actions"><button class="btn" id="share">${L('مشاركة / نسخ')}</button><button class="btn ghost" id="back2">${L('خلطة تانية')}</button></div>`;
 }
 function tbody(r){
-  return r.map(x => x.kg != null ? `<tr class="adm"><td>${x.ar}<span class="en">${esc(x.en)}</span></td>
-    <td class="v"><span class="num">${lit(x.v)}</span> لتر<span class="en"><span class="num">${kg(x.kg)}</span> كجم</span></td>
-    <td class="v tot"><span class="num">${lit(x.t)}</span> لتر<span class="en"><span class="num">${kg(x.tkg)}</span> كجم</span></td></tr>`
-    : `<tr class="${x.adm ? 'adm' : ''}"><td>${x.ar}<span class="en">${esc(x.en)}</span></td>
+  return r.map(x => x.kg != null ? `<tr class="adm"><td>${nameCell(x)}</td>
+    <td class="v"><span class="num">${lit(x.v)}</span> ${L('لتر')}<span class="en"><span class="num">${kg(x.kg)}</span> ${L('كجم')}</span></td>
+    <td class="v tot"><span class="num">${lit(x.t)}</span> ${L('لتر')}<span class="en"><span class="num">${kg(x.tkg)}</span> ${L('كجم')}</span></td></tr>`
+    : `<tr class="${x.adm ? 'adm' : ''}"><td>${nameCell(x)}</td>
     <td class="v num">${kg(x.v)}</td>
-    <td class="v num tot">${kg(x.t)}${x.t >= 1000 ? `<span class="t">${fmt(x.t / 1000, 2)} طن</span>` : ''}</td></tr>`).join('');
+    <td class="v num tot">${kg(x.t)}${x.t >= 1000 ? `<span class="t">${fmt(x.t / 1000, 2)} ${L('طن')}</span>` : ''}</td></tr>`).join('');
 }
 // Only the totals change while typing; redrawing the input would move the cursor on phones
 function refreshTotals(){
@@ -861,7 +917,7 @@ detEl.addEventListener('click', e => {
   if (t.id === 'back' || t.id === 'back2') { history.length > 1 && location.hash ? history.back() : go(''); return; }
   if (t.id === 'share') return share();
   if (t.id === 'setImport') return fileEl.click();
-  if (t.id === 'setReset') { toast('بيرجع…', 10000); return syncBundle(true); }
+  if (t.id === 'setReset') { toast(L('بيرجع…'), 10000); return syncBundle(true); }
   if (t.dataset.d) {
     qty = Math.max(0, (Number(qty) || 0) + Number(t.dataset.d));
     document.getElementById('qty').value = qty; refreshTotals();
@@ -879,10 +935,7 @@ detEl.addEventListener('keydown', e => {
 function share(){
   const m = current(); if (!m) return;
   // English only: mixed Arabic/English lines get reordered in chat apps
-  const en = x => x.adm ? x.en
-    : /cement/i.test(x.en) ? 'Cement ' + (m.kind === 'regular' ? m.ctype : /lll|iii/i.test(x.en) ? 'CEM III/A' : 'CEM I SR3')
-    : /total water/i.test(x.en) ? 'Water'
-    : x.en.replace(/\(\s*/g, '(').replace(/\s*\)/g, ')').replace(/\s+/g, ' ').trim();
+  const en = x => x.nice;
   // No quantity typed = send the mix design itself, per 1 m3
   const q = Number(qty) || 0, val = x => q ? x.t : x.v;
   const lines = [`Mix ${m.kind === 'regular' ? m.name : m.card + ' | ' + m.cls} | ${q ? q + ' m3' : 'per 1 m3'}`];
@@ -892,7 +945,7 @@ function share(){
   copy(text);
 }
 function copy(text){
-  const done = () => toast('اتنسخ');
+  const done = () => toast(L('اتنسخ'));
   if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(done, () => legacy());
   else legacy();
   function legacy(){ const t = document.createElement('textarea'); t.value = text; document.body.appendChild(t); t.select();
@@ -918,21 +971,21 @@ function renderSettings(){
   const info = k => {
     const d = DATA && DATA[k];
     return `<div class="box"><h3>${KIND[k]} Concrete</h3>${d ? `
-      <div class="kv"><span>المصدر</span><b>${d.src === 'bundle' ? 'الخلطات الأساسية' : d.src === 'pdf' ? 'PDF من الموبايل' : 'ملف Excel من الموبايل'}</b></div>
-      <div class="kv"><span>الملف</span><b class="num">${esc(d.file)}</b></div>
-      <div class="kv"><span>التاريخ</span><b class="num">${esc(d.at)}</b></div>
-      <div class="kv"><span>عدد الخلطات</span><b class="num">${d.mixes.length}</b></div>` : '<p>مفيش خلطات لسه.</p>'}</div>`;
+      <div class="kv"><span>${L('المصدر')}</span><b>${L(d.src === 'bundle' ? 'الخلطات الأساسية' : d.src === 'pdf' ? 'PDF من الموبايل' : 'ملف Excel من الموبايل')}</b></div>
+      <div class="kv"><span>${L('الملف')}</span><b class="num">${esc(d.file)}</b></div>
+      <div class="kv"><span>${L('التاريخ')}</span><b class="num">${esc(d.at)}</b></div>
+      <div class="kv"><span>${L('عدد الخلطات')}</span><b class="num">${d.mixes.length}</b></div>` : `<p>${L('مفيش خلطات لسه.')}</p>`}</div>`;
   };
   const imported = DATA && Object.keys(KIND).some(k => DATA[k] && DATA[k].src !== 'bundle');
   detEl.innerHTML = `<div class="set">
-    <button class="back" id="back">→ رجوع</button>
-    <h2>الإعدادات</h2>
+    <button class="back" id="back">${L('→ رجوع')}</button>
+    <h2>${L('الإعدادات')}</h2>
     ${info('nuclear')}${info('regular')}
-    <div class="box"><h3>تحديث الخلطات من Excel أو PDF</h3>
-      <p>اختار ملف الكتالوج الجديد (Nuclear أو Regular). التطبيق بيعرف نوعه لوحده وبيحدّث الخلطات بتاعته بس.<br>
-        الـ PDF أو الصورة بيتقروا خانة خانة (محتاج نت)، وبعدها بتراجع الأرقام قبل الحفظ.</p>
-      <button class="btn" id="setImport">Import ملف Excel / PDF</button>
-      ${imported && BUNDLE ? '<button class="btn ghost" id="setReset">رجوع للخلطات الأساسية</button>' : ''}
+    <div class="box"><h3>${L('تحديث الخلطات من Excel أو PDF')}</h3>
+      <p>${L('اختار ملف الكتالوج الجديد (Nuclear أو Regular). التطبيق بيعرف نوعه لوحده وبيحدّث الخلطات بتاعته بس.')}<br>
+        ${L('الـ PDF أو الصورة بيتقروا خانة خانة (محتاج نت)، وبعدها بتراجع الأرقام قبل الحفظ.')}</p>
+      <button class="btn" id="setImport">${L('Import ملف Excel / PDF')}</button>
+      ${imported && BUNDLE ? `<button class="btn ghost" id="setReset">${L('رجوع للخلطات الأساسية')}</button>` : ''}
     </div></div>`;
 }
 function route(){
@@ -961,7 +1014,15 @@ function route(){
 }
 window.addEventListener('hashchange', route);
 document.getElementById('gearBtn').onclick = () => { if (location.hash !== '#settings') location.hash = 'settings'; };
+document.getElementById('langBtn').onclick = () => {
+  LANG = LANG === 'ar' ? 'en' : 'ar'; store.set('lang', LANG);
+  const q = qty; applyLang(); applyTab(); route();
+  // route() reopens the mix at 0, so put the typed quantity back
+  const el = document.getElementById('qty');
+  if (el && q !== '') { qty = q; el.value = q; refreshTotals(); }
+};
 let loading = true;
+applyLang();
 wireReview();
 setData(store.get('data', null));
 route();
